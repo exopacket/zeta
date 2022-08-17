@@ -5,8 +5,8 @@ import java.io.IOException;
 
 public class Pushover {
 
-    private static String apiKey = "adqr1rcn5cdxyj5ov4743kkrq5t46x";
-    private static String clientKey = "ucy2523v1njakzrpfib37iq5d87fi6";
+    private static String apiKey = "";
+    private static String clientKey = "";
 
     public static void newNotification(String title, String message) {
 
