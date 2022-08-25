@@ -1,5 +1,5 @@
 # trusty - the Zero Trust API
 
-REST SYNC/ASYNC, Zero Trust ASYNC, and Zero Trust Websocket implemenations. 
+REST SYNC/ASYNC, Zero Trust SYNC/ASYNC.
 
-<strong>Still in development. REST SYNC only is complete.</strong>
+<strong>Still in development.<br>Currently finishing up the Zero Trust encryption methods and the Asynchronous Response Server.</strong>
