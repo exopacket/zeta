@@ -24,7 +24,6 @@ public abstract class APIServer implements ClientFilter {
     private APIResponseServer responseServer;
     private APIResources resources = new APIResources();
     private ArrayList<RemoteClient> clients = new ArrayList<RemoteClient>();
-
     private ArrayList<ClientSession> clientSessions = new ArrayList<ClientSession>();
     public APIServer(APIServerConfig config) throws APIException {
 
@@ -77,7 +76,16 @@ public abstract class APIServer implements ClientFilter {
 
         tmpFile = null;
 
-        //TODO START SERVERS
+        startHttpsServer();
+
+        switch(config.getServerResponseType()) {
+            case REST_ASYNC:
+            case ZERO_TRUST_ASYNC:
+            case REST_HYBRID:
+            case ZERO_TRUST_HYBRID:
+                startResponseServer();
+                break;
+        }
 
     }
     public APIResource addResource(String value, APIResource definition) {
@@ -149,7 +157,7 @@ public abstract class APIServer implements ClientFilter {
 
     public abstract APIKeyPair lookupApiKeys(String apiKey);
 
-    public abstract HashMap<String, String> getParameters(String reqBody, ContentType unset);
+    public abstract HashMap<String, String> getParameters(String reqBody, ContentType contentType);
 
     private void startHttpsServer() {
 

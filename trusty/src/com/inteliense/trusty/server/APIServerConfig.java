@@ -9,6 +9,8 @@ public class APIServerConfig {
     private int requestsPerMinute = 60;
     private String bindAddress;
     private APIServerType serverType = APIServerType.REST;
+
+    private APIServerType serverResponseType = APIServerType.REST_SYNC;
     private String apiServerKeyPassword;
     private String responseServerKeyPassword;
     private String apiServerKeystorePath;
@@ -174,5 +176,7 @@ public class APIServerConfig {
     public APIServerType getServerType() {
         return serverType;
     }
+
+    public APIServerType getServerResponseType() { return serverResponseType; }
 
 }
