@@ -677,7 +677,7 @@ public abstract class APIServer implements ClientFilter {
             } else if(type == ZeroTrustRequestType.GET_RESOURCE) {
 
                 String encrypted = params.getString("rsa_value");
-                String keySetId = params.getString("key_set_id");
+                String keySetId = clientSession.getSession().getKeySetId();
 
                 if(keySetId.equals(clientSession.getSession().getKeySetId())) {
                     String decrypted = RSA.decrypt(
@@ -701,7 +701,7 @@ public abstract class APIServer implements ClientFilter {
             } else {
 
                 String encrypted = params.getString("rsa_value");
-                String keySetId = params.getString("key_set_id");
+                String keySetId = clientSession.getSession().getKeySetId();
 
                 if(keySetId.equals(clientSession.getSession().getKeySetId())) {
                     String decrypted = RSA.decrypt(
@@ -733,7 +733,7 @@ public abstract class APIServer implements ClientFilter {
             }
 
             String encrypted = params.getString("rsa_value");
-            String keySetId = params.getString("key_set_id");
+            String keySetId = clientSession.getSession().getKeySetId();
 
             if(keySetId.equals(clientSession.getSession().getKeySetId())) {
                 String decrypted = RSA.decrypt(
