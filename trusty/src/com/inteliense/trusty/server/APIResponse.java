@@ -1,6 +1,7 @@
 package com.inteliense.trusty.server;
 
 import com.inteliense.trusty.utils.JSON;
+import com.inteliense.trusty.utils.RSA;
 import com.inteliense.trusty.utils.Random;
 import com.inteliense.trusty.utils.SHA;
 import org.json.simple.JSONObject;
@@ -12,36 +13,53 @@ public class APIResponse {
 
     private ResponseCode responseCode;
     private String response;
-    private RemoteClient client;
+    private ClientSession clientSession;
     private ContentType contentType;
     private LocalDateTime timestamp;
-
     private boolean isAsync = false;
     private int pollPeriod = 700;
     private boolean isCompleted = false;
     private AsyncRequest asyncRequest;
     private APIResponse redirectResponse;
 
-    public APIResponse(RemoteClient client, String response, ResponseCode responseCode) {
+    public APIResponse(ClientSession clientSession, String response, ResponseCode responseCode) {
 
-        this.client = client;
+        this.clientSession = clientSession;
         this.response = response;
         this.responseCode = responseCode;
 
     }
 
-    public APIResponse(RemoteClient client, JSONObject responseObj, ResponseCode responseCode) {
+    public APIResponse(ClientSession clientSession, JSONObject responseObj, ResponseCode responseCode) {
 
-        this.client = client;
+        this.clientSession = clientSession;
         this.response = JSON.getString(responseObj);
         this.responseCode = responseCode;
 
     }
 
-    public APIResponse(RemoteClient client, ResponseCode responseCode) {
+    public APIResponse(ClientSession clientSession, ResponseCode responseCode) {
 
-        this.client = client;
+        this.clientSession = clientSession;
         this.responseCode = responseCode;
+
+    }
+
+    public void encrypt() throws Exception {
+
+        JSONObject obj = new JSONObject();
+        String keySetId = clientSession.getSession().getKeySetId();
+
+        String encrypted = RSA.decrypt(
+                response, clientSession
+                        .getSession()
+                        .getClientPublicKey()
+                        .getPublicKeyId());
+
+        obj.put("rsa_val", encrypted);
+        obj.put("key_set_id", keySetId);
+
+        setResponse(obj);
 
     }
 
@@ -60,7 +78,7 @@ public class APIResponse {
     }
 
     private int nextPollPeriod() {
-        return (int) Math.round(pollPeriod * 1.35);
+        return (int) Math.round(pollPeriod * 1.5);
     }
 
     public LocalDateTime getTimestamp() {
@@ -92,8 +110,10 @@ public class APIResponse {
     }
 
     public RemoteClient getClient() {
-        return client;
+        return clientSession.getClient();
     }
+
+    public APISession getApiSession() { return clientSession.getSession(); }
 
     public void setResponse(String response) {
         this.response = response;
@@ -164,7 +184,7 @@ public class APIResponse {
             try {
                 String hexVal = SHA.getSha1(SHA.getHmac256(SHA.getHmac256(
                         dynamicRequestId,
-                        getClient().getSessionId()),
+                        clientSession.getSession().getSessionId()),
                         getClient().getApiKey()));
                 dynamicRequestId = hexVal;
             } catch (Exception ex) {

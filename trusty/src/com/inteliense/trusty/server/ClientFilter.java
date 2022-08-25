@@ -6,9 +6,9 @@ import java.util.HashMap;
 
 public interface ClientFilter {
 
-    boolean isPastRateLimit(RemoteClient client, int perMinute);
-    boolean inBlacklist(RemoteClient client);
-    boolean isAuthenticated(Headers headers, APIResource resource, Parameters params, RemoteClient client);
-    boolean lookupUserInfo(RemoteClient client);
+    boolean isPastRateLimit(ClientSession clientSession, int perMinute);
+    boolean inBlacklist(ClientSession clientSession);
+    boolean isAuthenticated(Headers headers, APIResource resource, Parameters params, ClientSession clientSession);
+    boolean lookupUserInfo(ClientSession clientSession);
 
 }

@@ -62,7 +62,7 @@ public class CORSPolicy {
             return new String[]{"Origin", "X-Requested-With",
                     "Content-Type", "Accept",
                     "X-Api-Key", "X-Request-Timestamp", "X-Request-Signature",
-                    "X-Api-Session-Id", "X-Api-Server-Public-Key", "X-Api-Client-Public-Key",
+                    "X-Api-Session-Id", "X-Api-Key-Set-Id",
                     "X-Api-User-Id", "X-Api-Client-Id", "X-Api-Session-Authorization"
             };
         return toArr(headers);

@@ -1,7 +1,8 @@
 package com.inteliense.trusty.server;
 
-import com.inteliense.trusty.utils.Hex;
+import com.inteliense.trusty.utils.EncodingUtils;
 import com.inteliense.trusty.utils.SHA;
+import com.sun.net.httpserver.Headers;
 import org.json.simple.JSONObject;
 
 import java.util.ArrayList;
@@ -12,9 +13,8 @@ public abstract class API implements APIMethods {
 
     private APIServer server;
     private APIServerConfig serverConfig;
-    private ArrayList<RemoteClient> clients;
-    private ArrayList<String> blacklist;
-    private ArrayList<RemoteClient> rateLimitedClients;
+    private ArrayList<BlacklistEntry> blacklist = new ArrayList<BlacklistEntry>();
+    private ArrayList<RemoteClient> rateLimitedClients = new ArrayList<RemoteClient>();
 
     public API(APIServerConfig config) throws APIException {
         this.serverConfig = config;
@@ -25,48 +25,34 @@ public abstract class API implements APIMethods {
         server = new APIServer(serverConfig) {
 
             @Override
+            public HashMap<String, String> getParameters(String body, ContentType contentType) {
+                return API.this.getParameters(body, contentType);
+            }
+
+            @Override
+            public boolean isPastRateLimit(ClientSession clientSession, int perMinute) {
+                return API.this.inTimeout(clientSession, perMinute);
+            }
+
+            @Override
+            public boolean inBlacklist(ClientSession clientSession) {
+                return API.this.inBlacklist(clientSession);
+            }
+
+            @Override
+            public boolean isAuthenticated(Headers headers, APIResource resource, Parameters params, ClientSession clientSession) {
+                return API.this.isAuthenticated(headers, resource, params, clientSession);
+            }
+
+            @Override
+            public boolean lookupUserInfo(ClientSession clientSession) {
+                return API.this.lookupUserInfo(clientSession);
+            }
+
+            @Override
             public APIKeyPair lookupApiKeys(String apiKey) {
-                return null;
+                return API.this.lookupApiKey(apiKey);
             }
-
-            @Override
-            public HashMap<String, String> parseRequestBody(RemoteClient client, String resource, String body) {
-                return API.this.parseRequestBody(client, resource, body);
-            }
-
-            @Override
-            public HashMap<String, String> decryptZeroTrust(JSONObject obj, ZeroTrustRequestType type) {
-                return API.this.decryptZeroTrust(obj, type);
-            }
-
-            @Override
-            public boolean isPastRateLimit(RemoteClient client, int perMinute) {
-                return API.this.isPastRateLimit(client, perMinute);
-            }
-
-            @Override
-            public boolean inBlacklist(RemoteClient client) {
-                return API.this.inBlacklist(client);
-            }
-
-            @Override
-            public RemoteClient initAuthentication(String apiKey, String ipAddress,
-                                                   String port, String hostname,
-                                                   HashMap<String, String> parameters) {
-                return API.this.initAuthentication(apiKey, ipAddress, port, hostname, parameters);
-            }
-
-            @Override
-            public boolean lookupApiKey(String apiKeyHeader) {
-                return API.this.lookupApiKey(apiKeyHeader);
-            }
-
-
-            @Override
-            public boolean lookupUserId(String apiKey, String clientId, String userId) {
-                return API.this.lookupUserId(apiKey, clientId, userId);
-            }
-
         };
 
     }
@@ -85,129 +71,192 @@ public abstract class API implements APIMethods {
         return server.addResource(value, parameters, definition);
     }
 
-    public boolean isAuthenticated(RemoteClient client) {
+    //IF REQUEST BODY IS NOT IN JSON FORMAT THIS MUST BE OVERRIDE
+    public HashMap<String, String> getParameters(String body, ContentType contentType) {
+        return new HashMap<String, String>();
+    }
+    public boolean isAuthenticated(Headers headers, APIResource resource, Parameters params, ClientSession clientSession) {
 
-        return lookupApiKey(client.getApiKey());
+        if(headers.containsKey("X-Api-Session-Id")) {
+
+            String apiKey = headers.getFirst("X-Api-Key");
+            String sessionId = headers.getFirst("X-Api-Session-Id");
+            String keySetId = headers.getFirst("X-Api-Key-Set-Id");
+            String userId = headers.getFirst("X-Api-User-Id");
+            String clientId = headers.getFirst("X-Api-Client-Id");
+            String sessionAuth = headers.getFirst("X-Api-Session-Authorization");
+
+            if(!apiKey.equals(clientSession.getClient().getApiKey()))
+                return false;
+
+            if(!sessionId.equals(clientSession.getSession().getSessionId()))
+                return false;
+
+            if(!keySetId.equals(clientSession.getSession().getKeySetId()))
+                return false;
+
+            if(!userId.equals(clientSession.getSession().getUserId()))
+                return false;
+
+            if(!clientId.equals(clientSession.getSession().getClientId()))
+                return false;
+
+            if(!sessionAuth.equals(clientSession.getSession().getSessionAuth()))
+                return false;
+
+            return true;
+
+        } else {
+
+            String apiKey = headers.getFirst("X-Api-Key");
+
+            if(!apiKey.equals(clientSession.getClient().getApiKey()))
+                return false;
+
+            return true;
+
+        }
 
     }
 
-    public boolean lookupUserId(String apiKey, String clientId, String userId) {
+    public boolean lookupUserInfo(ClientSession clientSession) {
 
-        //Returns false to indicate not found.
+        //Returns true to indicate user info was found.
         //Default value when not implemented.
+        return true;
+
+    }
+    public boolean inTimeout(ClientSession clientSession, int perMinute) {
+
+        if(clientSession.getSession().getRecentRequests() >= perMinute) {
+            return true;
+        }
+
+        return false;
+
+    }
+    public boolean inBlacklist(ClientSession clientSession) {
+
+        for(int i=0; i<blacklist.size(); i++) {
+
+            BlacklistEntry entry = blacklist.get(i);
+            BlacklistEntryType type = entry.getEntryType();
+            String value = entry.getValue();
+
+            boolean found = false;
+
+            switch(type) {
+                case API_KEY:
+                    found = value.equals(clientSession.getClient().getApiKey());
+                    break;
+                case USER_ID:
+                    found = value.equals(clientSession.getSession().getUserId());
+                    break;
+                case CLIENT_ID:
+                    found = value.equals(clientSession.getSession().getClientId());
+                    break;
+                case IP_ADDRESS:
+                    found = value.equals(clientSession.getSession().getClientInfo().getRemoteIp());
+                    break;
+            }
+
+            if(found)
+                return true;
+
+        }
+
         return false;
 
     }
 
-    //IF "POST" REQUEST IS NOT IN JSON FORMAT THIS MUST BE OVERRIDE
-    public HashMap<String, String> parseRequestBody(RemoteClient client, String resource, String body) {
-        return null;
+    public void addToBlacklist(ClientSession clientSession, BlacklistEntryType entryType) {
+        blacklist.add(0, new BlacklistEntry(entryType, clientSession));
     }
 
-    //TODO CAN BE DONE
-    public HashMap<String, String> decryptZeroTrust(JSONObject obj, ZeroTrustRequestType type) {
-
-        return null;
-
-    }
-
-    //TODO CAN BE DONE
-    public RemoteClient initAuthentication(String apiKey, String ipAddress,
-                                           String port, String hostname,
-                                           HashMap<String, String> parameters) {
-
-            String userId = parameters.get("user_id");
-            String clientId = parameters.get("client_id");
-            String initHash = parameters.get("id_hash");
-            String initHashCheck = Base64.getEncoder().encodeToString(
-                    Hex.fromHex(SHA.get256(
-                                    Base64.getEncoder().encodeToString(
-                                            Hex.fromHex(SHA.getHmac256(ipAddress, apiKey))
-                                    )
-                            )
-                    )
-            );
-
-            if(!initHash.equals(initHashCheck))
-                return RemoteClient.NONE;
-
-            if(!lookupUserId(apiKey, clientId, userId))
-                return RemoteClient.NONE;
-
-            int count = 1;
-
-            for(int i=0; i<clients.size(); i++) {
-
-                RemoteClient client = clients.get(i);
-                if(client.getUserId().equals(userId)) {
-                    count++;
-                    continue;
-                }
-                if(client.getRemoteIp().equals(ipAddress)) {
-                    count++;
-                    continue;
-                }
-
+    public void removeFromBlacklist(ClientSession clientSession) {
+        for(int i= blacklist.size() - 1; i>=0; i--) {
+            if(blacklist.get(i).equals(clientSession)) {
+                blacklist.remove(i);
             }
-
-            if(count > 0) {
-                if(count > serverConfig.getMaxSessions())
-                    return RemoteClient.NONE;
-            }
-
-            try {
-
-                new RemoteClient(ipAddress, port, hostname, apiKey, clientId, userId, server) {
-                    @Override
-                    public boolean isLimited(int perMinute) {
-                        return super.getServer().isPastRateLimit(this, serverConfig.getRequestsPerMinute());
-                    }
-
-                    @Override
-                    public boolean inBlacklist() {
-                        return super.getServer().inBlacklist(this);
-                    }
-
-                    @Override
-                    public boolean isAuthenticated() {
-                        return super.getServer().isAuthenticated(this);
-                    }
-
-                    @Override
-                    public boolean lookupApiKey(String apiKeyHeader) {
-                        return super.getServer().lookupApiKey(apiKeyHeader);
-                    }
-
-                    @Override
-                    public boolean lookupUserId(String apiKey, String clientId, String userId) {
-                        return super.getServer().lookupUserId(apiKey, clientId, userId);
-                    }
-                };
-
-            } catch (APIException ex) {
-                System.out.println(ex.getMessage());
-            }
-
-            return RemoteClient.NONE;
-
+        }
     }
 
-    //TODO CAN BE DONE
-    public boolean isPastRateLimit(RemoteClient client, int perMinute) {
-
-        //Returns false to indicate not found.
-        //Default value when not implemented.
-        return false;
-
+    public APIServer getServer() {
+        return server;
     }
 
-    //TODO CAN BE DONE
-    public boolean inBlacklist(RemoteClient client) {
+    public APIServerConfig getServerConfig() {
+        return serverConfig;
+    }
 
-        //Returns false to indicate not found.
-        //Default value when not implemented.
-        return false;
+    public ArrayList<BlacklistEntry> getBlacklist() {
+        return blacklist;
+    }
 
+    public ArrayList<RemoteClient> getRateLimitedClients() {
+        return rateLimitedClients;
+    }
+
+    public ArrayList<ClientSession> getClientSessions() {
+        return server.getClientSessions();
+    }
+
+    private class BlacklistEntry {
+
+        private BlacklistEntryType entryType;
+        private String value;
+
+        public BlacklistEntry(BlacklistEntryType entryType, String value) {
+            this.entryType = entryType;
+            this.value = value;
+        }
+
+        public BlacklistEntry(BlacklistEntryType entryType, ClientSession clientSession) {
+            this.entryType = entryType;
+            switch(entryType) {
+                case CLIENT_ID:
+                    this.value = clientSession.getSession().getClientId();
+                    break;
+                case USER_ID:
+                    this.value = clientSession.getSession().getUserId();
+                    break;
+                case API_KEY:
+                    this.value = clientSession.getClient().getApiKey();
+                    break;
+                case IP_ADDRESS:
+                    this.value = clientSession.getSession().getClientInfo().getRemoteIp();
+                    break;
+            }
+        }
+
+        public boolean equals(ClientSession clientSession) {
+            switch(entryType) {
+                case CLIENT_ID:
+                    return this.value.equals(clientSession.getSession().getClientId());
+                case USER_ID:
+                    return this.value.equals(clientSession.getSession().getUserId());
+                case API_KEY:
+                    return this.value.equals(clientSession.getClient().getApiKey());
+                case IP_ADDRESS:
+                    return this.value.equals(clientSession.getSession().getClientInfo().getRemoteIp());
+            }
+            return false;
+        }
+
+        public String getValue() {
+            return value;
+        }
+
+        public BlacklistEntryType getEntryType() {
+            return entryType;
+        }
+
+    }
+    public enum BlacklistEntryType {
+        IP_ADDRESS,
+        USER_ID,
+        CLIENT_ID,
+        API_KEY
     }
 
 }

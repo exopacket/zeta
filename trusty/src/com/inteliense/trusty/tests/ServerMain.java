@@ -12,27 +12,25 @@ public class ServerMain {
         APIServerConfig config = new APIServerConfig("127.0.0.1", 8080, "/api");
         config.setApiServerKeyPassword("testing");
         config.setApiServerKeystorePath("/Users/int/testing.keystore");
-        config.setServerType(APIServerType.REST_SYNC);
+        config.setServerType(APIServerType.REST);
         config.setRateLimit(25);
 
         API api = new API(config) {
             @Override
-            public KeyPair[] getKeyPairs(RemoteClient client) {
+            public APIKeyPair lookupApiKey(String apiKey) {
                 return null;
-            }
-
-            @Override
-            public boolean lookupApiKey(String apiKeyHeader) {
-                return false;
             }
         };
 
         api.start();
 
-        api.addResource("testing", new APIResource() {
+        api.addResource("accounts/login", new String[]{"username", "password"}, new APIResource() {
             @Override
-            public APIResponse execute(RemoteClient client, HashMap<String, String> parameters) {
-                return new APIResponse(client, "200 - OKAY", ResponseCode.SUCCESSFUL);
+            public APIResponse execute(ClientSession clientSession, Parameters params) {
+
+                //PROCESS accounts/login REQUEST
+
+                return new APIResponse(clientSession, "200-OKAY", ResponseCode.SUCCESSFUL);
             }
         });
 

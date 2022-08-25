@@ -1,5 +1,6 @@
 package com.inteliense.trusty.server;
 
+import com.inteliense.trusty.utils.EncodingUtils;
 import com.inteliense.trusty.utils.RSA;
 import com.inteliense.trusty.utils.Random;
 import com.inteliense.trusty.utils.SHA;
@@ -15,23 +16,25 @@ public class ZeroTrustKeyPairs {
     private AsymmetricKey clientPublic;
     private AsymmetricKey serverPublic;
 
-    private byte[] random;
+    private String keySetId;
 
-    private String randomHash;
-
-    public ZeroTrustKeyPairs(RemoteClient client) {
+    public ZeroTrustKeyPairs(ClientSession clientSession) {
 
         //packet
         //random bytes, server public, client private
 
         KeyPair[] keyPairs = getKeyPairs();
-        clientPublic = new AsymmetricKey(keyPairs[0].getPublic());
-        clientPrivate = new AsymmetricKey(keyPairs[0].getPrivate());
-        serverPublic = new AsymmetricKey(keyPairs[1].getPublic());
-        serverPrivate = new AsymmetricKey(keyPairs[1].getPrivate());
+        String apiSecret = clientSession.getClient().getApiSecret();
+        clientPublic = new AsymmetricKey(keyPairs[0].getPublic(), apiSecret);
+        clientPrivate = new AsymmetricKey(keyPairs[0].getPrivate(), apiSecret);
+        serverPublic = new AsymmetricKey(keyPairs[1].getPublic(), apiSecret);
+        serverPrivate = new AsymmetricKey(keyPairs[1].getPrivate(), apiSecret);
+        String keySetIdHashVal = clientPublic.getPublicKeyId() +
+                clientPrivate.getPrivateKeyId() +
+                serverPublic.getPublicKeyId() +
+                serverPrivate.getPrivateKey();
+        keySetId = SHA.getSha1(keySetIdHashVal);
         keyPairs = null;
-        random = Random.secure(128);
-        randomHash = SHA.get384(random);
 
     }
 
@@ -42,27 +45,31 @@ public class ZeroTrustKeyPairs {
 
     }
 
-    public PrivateKey getClientPrivate() {
+    public AsymmetricKey getClientPrivate() {
 
-        return clientPrivate.getPrivateKey();
-
-    }
-
-    public PrivateKey getServerPrivate() {
-
-        return serverPrivate.getPrivateKey();
+        return clientPrivate;
 
     }
 
-    public PublicKey getClientPublic() {
+    public String getKeySetId() {
+        return keySetId;
+    }
 
-        return clientPublic.getPublicKey();
+    public AsymmetricKey getServerPrivate() {
+
+        return serverPrivate;
 
     }
 
-    public PublicKey getServerPublic() {
+    public AsymmetricKey getClientPublic() {
 
-        return serverPublic.getPublicKey();
+        return clientPublic;
+
+    }
+
+    public AsymmetricKey getServerPublic() {
+
+        return serverPublic;
 
     }
 
@@ -75,17 +82,29 @@ public class ZeroTrustKeyPairs {
 
     }
 
-    private class AsymmetricKey {
+    public class AsymmetricKey {
 
         private PrivateKey privateKey;
         private PublicKey publicKey;
+        private String privateKeyId;
+        private String publicKeyId;
 
-        public AsymmetricKey(PrivateKey privateKey) {
+        public AsymmetricKey(PrivateKey privateKey, String apiSecret) {
+
             this.privateKey = privateKey;
+            byte[] bites = privateKey.getEncoded();
+            String base64 = EncodingUtils.getBase64(bites);
+            privateKeyId = SHA.getSha1(SHA.getHmac384(base64, apiSecret));
+
         }
 
-        public AsymmetricKey(PublicKey publicKey) {
+        public AsymmetricKey(PublicKey publicKey, String apiSecret) {
+
             this.publicKey = publicKey;
+            byte[] bites = publicKey.getEncoded();
+            String base64 = EncodingUtils.getBase64(bites);
+            publicKeyId = SHA.getSha1(SHA.getHmac384(base64, apiSecret));
+
         }
         public PrivateKey getPrivateKey() {
             return privateKey;
@@ -95,9 +114,19 @@ public class ZeroTrustKeyPairs {
             return publicKey;
         }
 
+        public String getPrivateKeyId() {
+            return privateKeyId;
+        }
+
+        public String getPublicKeyId() {
+            return publicKeyId;
+        }
+
         public void clearKeys() {
             this.publicKey = null;
             this.privateKey = null;
+            this.privateKeyId = "";
+            this.publicKeyId = "";
         }
 
     }

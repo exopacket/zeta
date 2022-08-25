@@ -1,14 +1,8 @@
 package com.inteliense.trusty.server;
 
-import com.inteliense.trusty.utils.Hex;
-import com.inteliense.trusty.utils.Random;
-import com.inteliense.trusty.utils.SHA;
 import com.sun.net.httpserver.Headers;
 
-import java.time.LocalDateTime;
 import java.util.ArrayList;
-import java.util.Base64;
-import java.util.HashMap;
 
 public abstract class RemoteClient {
 
@@ -17,12 +11,7 @@ public abstract class RemoteClient {
     private APIKeyPair apiKeys;
     public static final RemoteClient NONE = null;
 
-    public RemoteClient(ClientInfo clientInfo, APIKeyPair apiKeys, APIServer server) throws APIException {
-        this.server = server;
-        this.apiKeys = apiKeys;
-    }
-
-    public RemoteClient(ClientInfo clientInfo, APIKeyPair apiKeys, String sessionId, APIServer server) throws APIException {
+    public RemoteClient(APIKeyPair apiKeys, APIServer server) throws APIException {
         this.server = server;
         this.apiKeys = apiKeys;
     }
@@ -43,15 +32,8 @@ public abstract class RemoteClient {
         return findSession(sessionId) != null;
     }
 
-    public void newRequest() {
-        sessions.get(sessions.size() - 1).newRequest();
-    }
-
-    public void newRequest(String sessionId) {
-        APISession res = findSession(sessionId);
-        if(res != null) {
-            res.newRequest();
-        }
+    public APISession getSession(String sessionId) {
+        return findSession(sessionId);
     }
 
     public abstract boolean isLimited(int perMinute);
@@ -71,5 +53,7 @@ public abstract class RemoteClient {
         }
         return null;
     }
+
+
 
 }

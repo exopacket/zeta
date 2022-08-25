@@ -181,18 +181,18 @@ public class AES {
             if(encrypt) {
 
                 byte[] inputBytes = input.getBytes(StandardCharsets.UTF_8);
-                byte[] keyBytes = Hex.fromHex(key);
+                byte[] keyBytes = EncodingUtils.fromHex(key);
                 byte[] res = AES.ecb(inputBytes, keyBytes, encrypt);
 
                 if(res != null)
-                    return Hex.getHex(res);
+                    return EncodingUtils.getHex(res);
                 else
                     return "";
 
             } else {
 
-                byte[] inputBytes = Hex.fromHex(input);
-                byte[] keyBytes = Hex.fromHex(key);
+                byte[] inputBytes = EncodingUtils.fromHex(input);
+                byte[] keyBytes = EncodingUtils.fromHex(key);
                 byte[] res = AES.ecb(inputBytes, keyBytes, encrypt);
 
                 if(res != null)
@@ -211,11 +211,11 @@ public class AES {
                 byte[] inputBytes = input.getBytes(StandardCharsets.UTF_8);
                 byte[] res = AES.ecb(inputBytes, key, encrypt);
 
-                return Hex.getHex(res);
+                return EncodingUtils.getHex(res);
 
             } else {
 
-                byte[] inputBytes = Hex.fromHex(input);
+                byte[] inputBytes = EncodingUtils.fromHex(input);
                 byte[] res = AES.ecb(inputBytes, key, encrypt);
 
                 return new String(res);
@@ -229,20 +229,20 @@ public class AES {
             if(encrypt) {
 
                 byte[] inputBytes = input.getBytes(StandardCharsets.UTF_8);
-                byte[] keyBytes = Hex.fromHex(key);
-                byte[] ivBytes = Hex.fromHex(iv);
+                byte[] keyBytes = EncodingUtils.fromHex(key);
+                byte[] ivBytes = EncodingUtils.fromHex(iv);
                 byte[] res = AES.cbc(inputBytes, keyBytes, ivBytes, encrypt);
 
                 if(res != null)
-                    return Hex.getHex(res);
+                    return EncodingUtils.getHex(res);
                 else
                     return "";
 
             } else {
 
-                byte[] inputBytes = Hex.fromHex(input);
-                byte[] keyBytes = Hex.fromHex(key);
-                byte[] ivBytes = Hex.fromHex(iv);
+                byte[] inputBytes = EncodingUtils.fromHex(input);
+                byte[] keyBytes = EncodingUtils.fromHex(key);
+                byte[] ivBytes = EncodingUtils.fromHex(iv);
                 byte[] res = AES.cbc(inputBytes, keyBytes, ivBytes, encrypt);
 
                 if(res != null)
@@ -262,13 +262,13 @@ public class AES {
                 byte[] res = AES.cbc(inputBytes, key, iv, encrypt);
 
                 if(res != null)
-                    return Hex.getHex(res);
+                    return EncodingUtils.getHex(res);
                 else
                     return "";
 
             } else {
 
-                byte[] inputBytes = Hex.fromHex(input);
+                byte[] inputBytes = EncodingUtils.fromHex(input);
                 byte[] res = AES.cbc(inputBytes, key, iv, encrypt);
 
                 if(res != null)
@@ -285,22 +285,22 @@ public class AES {
             if(encrypt) {
 
                 byte[] inputBytes = input.getBytes(StandardCharsets.UTF_8);
-                byte[] keyBytes = Hex.fromHex(key);
-                byte[] ivBytes = Hex.fromHex(iv);
-                byte[] aadBytes = (aad == null) ? null : Hex.fromHex(aad);
+                byte[] keyBytes = EncodingUtils.fromHex(key);
+                byte[] ivBytes = EncodingUtils.fromHex(iv);
+                byte[] aadBytes = (aad == null) ? null : EncodingUtils.fromHex(aad);
                 byte[] res = AES.gcm(inputBytes, keyBytes, ivBytes, aadBytes, encrypt);
 
                 if(res != null)
-                    return Hex.getHex(res);
+                    return EncodingUtils.getHex(res);
                 else
                     return "";
 
             } else {
 
-                byte[] inputBytes = Hex.fromHex(input);
-                byte[] keyBytes = Hex.fromHex(key);
-                byte[] ivBytes = Hex.fromHex(iv);
-                byte[] aadBytes = (aad == null) ? null : Hex.fromHex(aad);
+                byte[] inputBytes = EncodingUtils.fromHex(input);
+                byte[] keyBytes = EncodingUtils.fromHex(key);
+                byte[] ivBytes = EncodingUtils.fromHex(iv);
+                byte[] aadBytes = (aad == null) ? null : EncodingUtils.fromHex(aad);
                 byte[] res = AES.gcm(inputBytes, keyBytes, ivBytes, aadBytes, encrypt);
 
                 if(res != null)
@@ -320,13 +320,13 @@ public class AES {
                 byte[] res = AES.gcm(inputBytes, key, iv, aad, encrypt);
 
                 if(res != null)
-                    return Hex.getHex(res);
+                    return EncodingUtils.getHex(res);
                 else
                     return "";
 
             } else {
 
-                byte[] inputBytes = Hex.fromHex(input);
+                byte[] inputBytes = EncodingUtils.fromHex(input);
                 byte[] res = AES.gcm(inputBytes, key, iv, aad, encrypt);
 
                 if(res != null)

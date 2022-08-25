@@ -8,15 +8,12 @@ public class APIServerConfig {
     private int responsePort;
     private int requestsPerMinute = 60;
     private String bindAddress;
-    private APIServerType serverType = APIServerType.REST_SYNC;
-
+    private APIServerType serverType = APIServerType.REST;
     private String apiServerKeyPassword;
     private String responseServerKeyPassword;
     private String apiServerKeystorePath;
     private String responseServerKeystorePath;
-
     private String apiPath = "/";
-
     private String responseServerPath = "/";
     private int maxSessions = 0;
     private String sessionClosePath = "";
@@ -24,12 +21,8 @@ public class APIServerConfig {
     private String sessionKeyTransferPath = "";
 
     private APIResources apiResources;
-
-    private String[] corsOptions;
-
     private CORSPolicy corsPolicy;
-
-    private String[] zeroTrustSessionPaths = new String[]{".", ".", ".", "."};
+    private String[] zeroTrustSessionPaths = new String[]{".", ".", "."};
 
     public APIServerConfig(int port) {
         this.apiPort = port;
@@ -70,9 +63,9 @@ public class APIServerConfig {
     }
 
     public void setSessionResourcePaths(String sessionInitPath, String sessionKeyTransferPath, String sessionClosePath) {
-        this.sessionInitPath = sessionInitPath.replace("/", "_");
-        this.sessionKeyTransferPath = sessionKeyTransferPath.replace("/", "_");
-        this.sessionClosePath = sessionClosePath.replace("/", "_");
+        this.sessionInitPath = sessionInitPath;
+        this.sessionKeyTransferPath = sessionKeyTransferPath;
+        this.sessionClosePath = sessionClosePath;
     }
 
     public String[] getZeroTrustSessionPaths() {

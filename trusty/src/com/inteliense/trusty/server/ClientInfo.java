@@ -7,7 +7,6 @@ import java.util.ArrayList;
 public class ClientInfo {
 
     private String remoteIp;
-    private int remotePort;
     private ArrayList<String> remoteHostname;
     private ArrayList<String> userAgent;
 
@@ -19,7 +18,6 @@ public class ClientInfo {
     public ClientInfo(Headers headers, String remoteIp, int remotePort, String remoteHostname) {
         userAgent.add(headers.getFirst("User-Agent"));
         this.remoteHostname.add(remoteHostname);
-        this.remotePort = remotePort;
         this.remoteIp = remoteIp;
     }
 
@@ -43,10 +41,6 @@ public class ClientInfo {
 
     public int getNumIpRequests() {
         return numIpRequests;
-    }
-
-    public int getRemotePort() {
-        return remotePort;
     }
 
     public String getLastUserAgent() {

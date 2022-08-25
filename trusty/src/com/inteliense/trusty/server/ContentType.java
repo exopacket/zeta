@@ -4,5 +4,7 @@ public enum ContentType {
     TEXT,
     HTML,
     XML,
-    JSON
+    JSON,
+    UNKNOWN,
+    UNSET
 }

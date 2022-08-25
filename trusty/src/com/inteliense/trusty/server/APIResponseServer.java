@@ -35,7 +35,7 @@ public class APIResponseServer {
         tmpFile = null;
 
     }
-    public void addRequest(RemoteClient client,
+    public void addRequest(ClientSession clientSession,
                            Parameters body, APIResource resource, APIResponse response) {
 
     }

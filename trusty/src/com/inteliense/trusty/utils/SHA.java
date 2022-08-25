@@ -23,7 +23,8 @@ public class SHA {
                 hashtext = "0" + hashtext;
             }
 
-            return hashtext;
+            return hashtext.toLowerCase();
+
         }
 
         catch (NoSuchAlgorithmException e) {
@@ -49,7 +50,7 @@ public class SHA {
                 hashtext = "0" + hashtext;
             }
 
-            return hashtext;
+            return hashtext.toLowerCase();
         }
 
         catch (NoSuchAlgorithmException e) {
@@ -75,7 +76,7 @@ public class SHA {
                 hashtext = "0" + hashtext;
             }
 
-            return hashtext;
+            return hashtext.toLowerCase();
         }
 
         catch (NoSuchAlgorithmException e) {
@@ -101,7 +102,7 @@ public class SHA {
                 hashtext = "0" + hashtext;
             }
 
-            return hashtext;
+            return hashtext.toLowerCase();
         }
 
         catch (NoSuchAlgorithmException e) {
@@ -127,7 +128,7 @@ public class SHA {
                 hashtext = "0" + hashtext;
             }
 
-            return hashtext;
+            return hashtext.toLowerCase();
         }
 
         catch (NoSuchAlgorithmException e) {
@@ -146,7 +147,7 @@ public class SHA {
             SecretKeySpec secret_key = new SecretKeySpec(key.getBytes("UTF-8"), "HmacSHA512");
             sha256_HMAC.init(secret_key);
 
-            return Hex.getHex(sha256_HMAC.doFinal(input.getBytes("UTF-8")));
+            return EncodingUtils.getHex(sha256_HMAC.doFinal(input.getBytes("UTF-8"))).toLowerCase();
 
         } catch (Exception ex) {
 
@@ -164,7 +165,7 @@ public class SHA {
             SecretKeySpec secret_key = new SecretKeySpec(key, "HmacSHA384");
             sha384_HMAC.init(secret_key);
 
-            return Hex.getHex(sha384_HMAC.doFinal(input.getBytes("UTF-8")));
+            return EncodingUtils.getHex(sha384_HMAC.doFinal(input.getBytes("UTF-8"))).toLowerCase();
 
         } catch (Exception ex) {
 
@@ -179,10 +180,10 @@ public class SHA {
         try {
 
             Mac sha384_HMAC = Mac.getInstance("HmacSHA384");
-            SecretKeySpec secret_key = new SecretKeySpec(Hex.fromHex(key), "HmacSHA384");
+            SecretKeySpec secret_key = new SecretKeySpec(EncodingUtils.fromHex(key), "HmacSHA384");
             sha384_HMAC.init(secret_key);
 
-            return Hex.getHex(sha384_HMAC.doFinal(input.getBytes("UTF-8")));
+            return EncodingUtils.getHex(sha384_HMAC.doFinal(input.getBytes("UTF-8"))).toLowerCase();
 
         } catch (Exception ex) {
 
@@ -199,7 +200,7 @@ public class SHA {
             SecretKeySpec secret_key = new SecretKeySpec(key.getBytes("UTF-8"), "HmacSHA256");
             sha256_HMAC.init(secret_key);
 
-            return Hex.getHex(sha256_HMAC.doFinal(input.getBytes("UTF-8")));
+            return EncodingUtils.getHex(sha256_HMAC.doFinal(input.getBytes("UTF-8"))).toLowerCase();
 
         } catch (Exception ex) {
 
