@@ -799,6 +799,8 @@ public abstract class APIServer implements ClientFilter {
             obj.put("key_set_id", keySetId);
             obj.put("request_status", "success");
 
+            clientSession.getSession().keysTransferred();
+
             return new APIResponse(clientSession, obj, ResponseCode.SUCCESSFUL);
 
         }

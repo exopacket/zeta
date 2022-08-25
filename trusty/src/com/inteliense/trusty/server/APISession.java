@@ -101,6 +101,9 @@ public class APISession {
         return zeroTrustKeyPairs.getKeySetId();
     }
 
+    public void keysTransferred() {
+        zeroTrustKeyPairs.clear();
+    }
     public ZeroTrustKeyPairs.AsymmetricKey getClientPublicKey() {
         return zeroTrustKeyPairs.getClientPublic();
     }
