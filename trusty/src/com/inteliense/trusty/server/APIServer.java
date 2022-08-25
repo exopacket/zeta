@@ -207,7 +207,7 @@ public abstract class APIServer implements ClientFilter {
             });
 
             server.createContext(config.getApiPath(), new APIServerHandler());
-            server.setExecutor(null); // creates a default executor
+            server.setExecutor(null);
             server.start();
 
         } catch (IOException | KeyManagementException | KeyStoreException | NoSuchAlgorithmException |
@@ -685,49 +685,33 @@ public abstract class APIServer implements ClientFilter {
             } else if(type == ZeroTrustRequestType.GET_RESOURCE) {
 
                 String encrypted = params.getString("rsa_value");
-                String keySetId = clientSession.getSession().getKeySetId();
 
-                if(keySetId.equals(clientSession.getSession().getKeySetId())) {
-                    String decrypted = RSA.decrypt(
-                            encrypted, clientSession
-                                    .getSession()
-                                    .getServerPrivateKey()
-                                    .getPrivateKey());
+                String decrypted = RSA.decrypt(
+                        encrypted, clientSession
+                                .getSession()
+                                .getServerPrivateKey()
+                                .getPrivateKey());
 
-                    Parameters decryptedParams = new Parameters(_getParameters(decrypted));
+                Parameters decryptedParams = new Parameters(_getParameters(decrypted));
 
-                    APIResponse resp = execute(clientSession, resource, decryptedParams);
-                    resp.encrypt();
-                    return resp;
-
-                } else {
-
-                    return new APIResponse(clientSession, ResponseCode.UNAUTHORIZED);
-
-                }
+                APIResponse resp = execute(clientSession, resource, decryptedParams);
+                resp.encrypt();
+                return resp;
 
             } else {
 
                 String encrypted = params.getString("rsa_value");
-                String keySetId = clientSession.getSession().getKeySetId();
 
-                if(keySetId.equals(clientSession.getSession().getKeySetId())) {
-                    String decrypted = RSA.decrypt(
-                            encrypted, clientSession
-                                    .getSession()
-                                    .getServerPrivateKey()
-                                    .getPrivateKey());
+                String decrypted = RSA.decrypt(
+                        encrypted, clientSession
+                                .getSession()
+                                .getServerPrivateKey()
+                                .getPrivateKey());
 
-                    Parameters decryptedParams = new Parameters(_getParameters(decrypted));
-                    APIResponse resp = execute(clientSession, resource, decryptedParams);
-                    resp.encrypt();
-                    return resp;
-
-                } else {
-
-                    return new APIResponse(clientSession, ResponseCode.UNAUTHORIZED);
-
-                }
+                Parameters decryptedParams = new Parameters(_getParameters(decrypted));
+                APIResponse resp = execute(clientSession, resource, decryptedParams);
+                resp.encrypt();
+                return resp;
 
             }
         }
