@@ -101,7 +101,7 @@ public abstract class API implements APIMethods {
             if(!clientId.equals(clientSession.getSession().getClientId()))
                 return false;
 
-            if(!sessionAuth.equals(clientSession.getSession().getSessionAuth()))
+            if(!clientSession.getSession().checkDynamicSessionAuth(sessionAuth))
                 return false;
 
             return true;
@@ -156,7 +156,7 @@ public abstract class API implements APIMethods {
                     found = value.equals(clientSession.getSession().getClientId());
                     break;
                 case IP_ADDRESS:
-                    found = value.equals(clientSession.getSession().getClientInfo().getRemoteIp());
+                    found = value.equals(clientSession.getClient().getClientInfo().getRemoteIp());
                     break;
             }
 
@@ -224,7 +224,7 @@ public abstract class API implements APIMethods {
                     this.value = clientSession.getClient().getApiKey();
                     break;
                 case IP_ADDRESS:
-                    this.value = clientSession.getSession().getClientInfo().getRemoteIp();
+                    this.value = clientSession.getClient().getClientInfo().getRemoteIp();
                     break;
             }
         }
@@ -238,7 +238,7 @@ public abstract class API implements APIMethods {
                 case API_KEY:
                     return this.value.equals(clientSession.getClient().getApiKey());
                 case IP_ADDRESS:
-                    return this.value.equals(clientSession.getSession().getClientInfo().getRemoteIp());
+                    return this.value.equals(clientSession.getClient().getClientInfo().getRemoteIp());
             }
             return false;
         }

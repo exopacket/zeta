@@ -25,6 +25,7 @@ public abstract class APIServer implements ClientFilter {
     private APIResources resources = new APIResources();
     private ArrayList<RemoteClient> clients = new ArrayList<RemoteClient>();
     private ArrayList<ClientSession> clientSessions = new ArrayList<ClientSession>();
+    private ArrayList<APISession> pastSessions = new ArrayList<APISession>();
     public APIServer(APIServerConfig config) throws APIException {
 
         this.config = config;
@@ -45,15 +46,15 @@ public abstract class APIServer implements ClientFilter {
         }
 
         if(config.getServerType() == APIServerType.ZERO_TRUST) {
-            if(config.getSessionInitPath().equals("")) {
+            if(config.getZeroTrustSessionPaths()[0].equals("")) {
                 throw new APIException("Server could not be started successfully. " +
                         "The API path is not set.");
             }
-            if(config.getSessionKeyTransferPath().equals("")) {
+            if(config.getZeroTrustSessionPaths()[1].equals("")) {
                 throw new APIException("Server could not be started successfully. " +
                         "The API path is not set.");
             }
-            if(config.getSessionClosePath().equals("")) {
+            if(config.getZeroTrustSessionPaths()[2].equals("")) {
                 throw new APIException("Server could not be started successfully. " +
                         "The API path is not set.");
             }
@@ -143,6 +144,27 @@ public abstract class APIServer implements ClientFilter {
 
         return null;
         
+    }
+
+    public APIResponse asyncExecute(ClientSession clientSession, APIResource resource, Parameters parameters, String nextSessionAuth) {
+
+        try {
+
+            APIResponse retVal = getRedirectResponse(clientSession, resource, parameters);
+
+            Thread t = new Thread(() -> {
+                resource.execute(clientSession, parameters);
+                addAsyncRequest(clientSession, parameters, resource, retVal);
+            });
+
+            return retVal;
+
+        } catch (APIException ex) {
+            System.out.println(ex.getMessage());
+        }
+
+        return null;
+
     }
 
     public APIResponse getRedirectResponse(ClientSession clientSession, APIResource resource, Parameters parameters) throws APIException {
@@ -342,31 +364,84 @@ public abstract class APIServer implements ClientFilter {
 
             if(headers.containsKey("X-Api-Session-Id")) {
                 clientIndex = findClient(headers.getFirst("X-Api-Session-Id"));
-
             } else {
                 clientIndex = findClient(apiKeys);
             }
+
+            invalidateOldSessions();
 
             ClientSession clientSession = null;
             RemoteClient client = null;
 
             if(clientIndex < 0) {
+
                 try {
                     clientSession = appendNewClient(apiKeys, new ClientInfo(
-                            headers, ipAddr, Integer.parseInt(port), hostname
+                            headers, ipAddr, hostname
                     ));
                     client = clientSession.getClient();
                 } catch (Exception e) {
                     serverError(t);
                     return;
                 }
+
             } else {
+
                 client = clients.get(clientIndex);
-                APISession session = client.getSession(headers.getFirst("X-Api-Session-Id"));
-                clientSession = new ClientSession(client, session);
+
+                if(!sessionAllowed(client)) {
+                    noApiKey(t);
+                    return;
+                }
+
+                int clientSessionIndex = -1;
+
+                if(headers.containsKey("X-Api-Session-Id")) {
+
+                    clientSessionIndex = findClientSession(client, headers.getFirst("X-Api-Session-Id"));
+
+                } else {
+
+                    if (config.getZeroTrustSessionPaths()[0].equals(resource)) {
+
+                        try {
+
+                            APISession createdSession = new APISession(apiKeys, ipAddr,
+                                    config.getServerType(),
+                                    config.getMinutesTillInvalid());
+
+                            clientSessionIndex = clientSessions.size();
+                            clientSessions.add(new ClientSession(new ClientInfo(
+                                    headers, remoteAddr, hostname
+                            ), client, createdSession));
+
+                        } catch (APIException e) {
+                            serverError(t);
+                            return;
+                        }
+
+                    } else {
+
+                        clientSessionIndex = findClientSession(client, apiKeys);
+
+                    }
+                }
+
+                if(clientSessionIndex < 0) {
+                    noApiKey(t);
+                    return;
+                } else {
+                    clientSession = clientSessions.get(clientSessionIndex);
+                }
+
             }
 
-            clientSession.getSession().newRequest();
+            if(clientSession.getClient().isFlagged(headers, hostname)) {
+                noApiKey(t);
+                return;
+            }
+
+            clientSession.newRequest();
 
             HashMap<String, String> parameters;
 
@@ -476,6 +551,15 @@ public abstract class APIServer implements ClientFilter {
 
         }
 
+        private void invalidateOldSessions() {
+            for(int i=clientSessions.size() - 1; i>=0; i--) {
+                if(clientSessions.get(i).getSession().invalidateByTime()) {
+                    pastSessions.add(clientSessions.get(i).getSession());
+                    clientSessions.remove(i);
+                }
+            }
+        }
+
         private ClientSession appendNewClient(APIKeyPair keys, ClientInfo info) {
 
             return ClientSession.createClient(info, keys, APIServer.this);
@@ -495,6 +579,59 @@ public abstract class APIServer implements ClientFilter {
             String sigReceived = headers.getFirst("X-Request-Signature");
 
             return sig.equals(sigReceived);
+        }
+
+        private boolean sessionAllowed(RemoteClient client) {
+
+            int numSessions = 0;
+
+            for(int i=0; i<clientSessions.size(); i++) {
+
+                RemoteClient current = clientSessions.get(i).getClient();
+                if(current.equals(client))
+                    numSessions++;
+
+            }
+
+            return (numSessions >= config.getMaxSessions());
+
+        }
+        private int findClientSession(RemoteClient client, String sessionId) {
+
+            for(int i=0; i<clientSessions.size(); i++) {
+
+                RemoteClient current = clientSessions.get(i).getClient();
+
+                if(current.equals(client)) {
+
+                    if(clientSessions.get(i).getSession().getSessionId().equals(sessionId))
+                        return i;
+
+                }
+
+            }
+
+            return -1;
+
+        }
+
+        private int findClientSession(RemoteClient client, APIKeyPair apiKeys) {
+
+            for(int i=0; i<clientSessions.size(); i++) {
+
+                RemoteClient current = clientSessions.get(i).getClient();
+
+                if(current.equals(client)) {
+
+                    if(clientSessions.get(i).getSession().getApiKeys().getKey().equals(apiKeys.getKey()))
+                        return i;
+
+                }
+
+            }
+
+            return -1;
+
         }
 
         private int findClient(APIKeyPair apiKeys) {
@@ -615,10 +752,6 @@ public abstract class APIServer implements ClientFilter {
             Parameters params = new Parameters(parameters);
             APIResource resource = resources.getResource(resourceName);
 
-            if(!isAuthenticated(headers, resource, params, clientSession)) {
-                return new APIResponse(clientSession, ResponseCode.UNAUTHORIZED);
-            }
-
             if(config.getServerType() == APIServerType.ZERO_TRUST) {
 
                 if(resource.isAsync()) {
@@ -628,9 +761,21 @@ public abstract class APIServer implements ClientFilter {
                     } else if (config.getZeroTrustSessionPaths()[1].equals(resource.getName())) {
                         return processRequestZeroTrustAsync(clientSession, resource, params, ZeroTrustRequestType.KEY_TRANSFER);
                     } else if (config.getZeroTrustSessionPaths()[2].equals(resource.getName())) {
+
+                        if(!isAuthenticated(headers, resource, params, clientSession)) {
+                            return new APIResponse(clientSession, ResponseCode.UNAUTHORIZED);
+                        }
+
                         return processRequestZeroTrustAsync(clientSession, resource, params, ZeroTrustRequestType.SESSION_CLOSE);
+
                     } else {
+
+                        if(!isAuthenticated(headers, resource, params, clientSession)) {
+                            return new APIResponse(clientSession, ResponseCode.UNAUTHORIZED);
+                        }
+
                         return processRequestZeroTrustAsync(clientSession, resource, params, ZeroTrustRequestType.GET_RESOURCE);
+
                     }
 
                 } else {
@@ -640,9 +785,21 @@ public abstract class APIServer implements ClientFilter {
                     } else if (config.getZeroTrustSessionPaths()[1].equals(resource.getName())) {
                         return processRequestZeroTrustSync(clientSession, resource, params, ZeroTrustRequestType.KEY_TRANSFER);
                     } else if (config.getZeroTrustSessionPaths()[2].equals(resource.getName())) {
+
+                        if(!isAuthenticated(headers, resource, params, clientSession)) {
+                            return new APIResponse(clientSession, ResponseCode.UNAUTHORIZED);
+                        }
+
                         return processRequestZeroTrustSync(clientSession, resource, params, ZeroTrustRequestType.SESSION_CLOSE);
+
                     } else {
+
+                        if(!isAuthenticated(headers, resource, params, clientSession)) {
+                            return new APIResponse(clientSession, ResponseCode.UNAUTHORIZED);
+                        }
+
                         return processRequestZeroTrustAsync(clientSession, resource, params, ZeroTrustRequestType.GET_RESOURCE);
+
                     }
                     
                 }
@@ -651,9 +808,17 @@ public abstract class APIServer implements ClientFilter {
                 
                 if(resource.isAsync()) {
 
+                    if(!isAuthenticated(headers, resource, params, clientSession)) {
+                        return new APIResponse(clientSession, ResponseCode.UNAUTHORIZED);
+                    }
+
                     return processRequestAsync(clientSession, resource, params);
                     
                 } else {
+
+                    if(!isAuthenticated(headers, resource, params, clientSession)) {
+                        return new APIResponse(clientSession, ResponseCode.UNAUTHORIZED);
+                    }
                     
                     return processRequestSync(clientSession, resource, params);
                     
@@ -681,7 +846,7 @@ public abstract class APIServer implements ClientFilter {
             } else if(type == ZeroTrustRequestType.KEY_TRANSFER) {
                 return keyTransfer(clientSession);
             } else if(type == ZeroTrustRequestType.SESSION_CLOSE) {
-                return sessionClose(clientSession);
+                return sessionClose(params, clientSession);
             } else if(type == ZeroTrustRequestType.GET_RESOURCE) {
 
                 String encrypted = params.getString("rsa_value");
@@ -695,6 +860,7 @@ public abstract class APIServer implements ClientFilter {
                 Parameters decryptedParams = new Parameters(_getParameters(decrypted));
 
                 APIResponse resp = execute(clientSession, resource, decryptedParams);
+                resp.addNewSessionAuth(clientSession.getSession().getDynamicSessionAuth());
                 resp.encrypt();
                 return resp;
 
@@ -710,6 +876,7 @@ public abstract class APIServer implements ClientFilter {
 
                 Parameters decryptedParams = new Parameters(_getParameters(decrypted));
                 APIResponse resp = execute(clientSession, resource, decryptedParams);
+                resp.addNewSessionAuth(clientSession.getSession().getDynamicSessionAuth());
                 resp.encrypt();
                 return resp;
 
@@ -735,7 +902,10 @@ public abstract class APIServer implements ClientFilter {
                                 .getPrivateKey());
 
                 Parameters decryptedParams = new Parameters(_getParameters(decrypted));
-                return asyncExecute(clientSession, resource, decryptedParams);
+                return asyncExecute(clientSession,
+                        resource,
+                        decryptedParams,
+                        clientSession.getSession().getDynamicSessionAuth());
 
             } else {
 
@@ -750,7 +920,7 @@ public abstract class APIServer implements ClientFilter {
             JSONObject obj = new JSONObject();
 
             String sessionId = clientSession.getSession().getSessionId();
-            String sessionAuth = clientSession.getSession().getSessionAuth();
+            String sessionAuth = clientSession.getSession().getDynamicSessionAuth();
 
             obj.put("session_auth", sessionAuth);
             obj.put("session_id", sessionId);
@@ -797,12 +967,35 @@ public abstract class APIServer implements ClientFilter {
 
         }
 
-        private APIResponse sessionClose(ClientSession clientSession) {
+        private APIResponse sessionClose(Parameters params, ClientSession clientSession) {
 
-            clientSession.getSession().deactivate();
-            JSONObject obj = new JSONObject();
-            obj.put("request_status", "success");
-            return new APIResponse(clientSession, obj, ResponseCode.SUCCESSFUL);
+            String encrypted = params.getString("rsa_value");
+            String keySetId = clientSession.getSession().getKeySetId();
+
+            if(keySetId.equals(clientSession.getSession().getKeySetId())) {
+                String decrypted = RSA.decrypt(
+                        encrypted, clientSession
+                                .getSession()
+                                .getServerPrivateKey()
+                                .getPrivateKey());
+
+                Parameters decryptedParams = new Parameters(_getParameters(decrypted));
+
+                String receivedHash = decryptedParams.getString("authorization");
+                String correctApiKey = clientSession.getSession().getApiKeys().getKey();
+                String correctSecretKey = clientSession.getSession().getApiKeys().getSecret();
+                String correctHash = SHA.getHmac256(SHA.get256(correctSecretKey), correctApiKey);
+
+                if(correctHash.equals(receivedHash)) {
+                    clientSession.getSession().deactivate();
+                    JSONObject obj = new JSONObject();
+                    obj.put("request_status", "success");
+                    return new APIResponse(clientSession, obj, ResponseCode.SUCCESSFUL);
+                }
+
+            }
+
+            return new APIResponse(clientSession, ResponseCode.UNAUTHORIZED);
 
         }
         private void authFailure(HttpExchange t) {

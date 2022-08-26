@@ -38,6 +38,8 @@ public class APIResponseServer {
     public void addRequest(ClientSession clientSession,
                            Parameters body, APIResource resource, APIResponse response) {
 
+
+
     }
 
 }

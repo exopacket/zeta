@@ -6,9 +6,6 @@ public class APIKeyPair {
 
     private String key;
     private String secret;
-
-    private ZeroTrustKeyPairs zeroTrustKeys;
-
     public APIKeyPair(String key, String secret) {
         this.key = key;
         this.secret = secret;

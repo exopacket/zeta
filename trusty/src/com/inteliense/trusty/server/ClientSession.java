@@ -6,13 +6,16 @@ public class ClientSession {
 
     private RemoteClient client;
     private APISession session;
+    private ClientInfo clientInfo;
 
-    public ClientSession(APISession session) {
+    public ClientSession(ClientInfo info, APISession session) {
         this.session = session;
+        this.clientInfo = info;
     }
-    public ClientSession(RemoteClient client, APISession session) {
+    public ClientSession(ClientInfo info, RemoteClient client, APISession session) {
         this.client = client;
         this.session = session;
+        this.clientInfo = info;
     }
 
     public static ClientSession createClient(ClientInfo clientInfo, APIKeyPair apiKeys, APIServer server) {
@@ -20,8 +23,10 @@ public class ClientSession {
         try {
 
             APIServerType serverType = server.getConfig().getServerType();
-            APISession session = new APISession(clientInfo, apiKeys, serverType, server.getConfig().getRequestsPerMinute());
-            ClientSession retVal = new ClientSession(session);
+            APISession session = new APISession(apiKeys, clientInfo.getRemoteIp(), serverType,
+                    server.getConfig().getMinutesTillInvalid()
+            );
+            ClientSession retVal = new ClientSession(clientInfo, session);
             RemoteClient client = new RemoteClient(apiKeys, server) {
                 @Override
                 public boolean isLimited(int perMinute) {
@@ -42,6 +47,7 @@ public class ClientSession {
                 public boolean lookupUserInfo() {
                     return this.getServer().lookupUserInfo(retVal);
                 }
+
             };
 
             retVal.setClient(client);
@@ -64,8 +70,13 @@ public class ClientSession {
         return client;
     }
 
-    public APISession getSession () {
+    public APISession getSession() {
         return session;
+    }
+
+    public void newRequest() {
+        getSession().newRequest();
+        getClient().newRequest();
     }
 
 }

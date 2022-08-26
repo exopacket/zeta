@@ -1,9 +1,6 @@
 package com.inteliense.trusty.server;
 
-import com.inteliense.trusty.utils.JSON;
-import com.inteliense.trusty.utils.RSA;
-import com.inteliense.trusty.utils.Random;
-import com.inteliense.trusty.utils.SHA;
+import com.inteliense.trusty.utils.*;
 import org.json.simple.JSONObject;
 
 import java.time.LocalDateTime;
@@ -119,6 +116,12 @@ public class APIResponse {
         this.response = response;
     }
 
+    //TODO add override methods through new interface for custom formats
+    public void addNewSessionAuth(String val) {
+        JSONObject obj = JSON.getObject(response);
+        obj.put("new_session_auth", val);
+        response = JSON.getString(obj);
+    }
     public void setResponse(JSONObject obj) throws Exception {
         this.response = JSON.getString(obj);
     }
@@ -138,59 +141,38 @@ public class APIResponse {
     public class AsyncRequest {
 
         private LocalDateTime lastTimestamp;
-        private String staticAuthCookie;
-        private String dynamicRequestId;
+        private String staticRequestId;
+        private String dynamicRequestAuth;
 
-        public AsyncRequest(LocalDateTime lastTimestamp, String staticAuthCookie) throws APIException {
+        private APIResponse response;
 
-            this.lastTimestamp = lastTimestamp;
-            this.staticAuthCookie = staticAuthCookie;
-            this.dynamicRequestId = staticAuthCookie;
-            getNewRequestId();
-
-        }
-
-        public AsyncRequest(LocalDateTime lastTimestamp) throws APIException {
+        public AsyncRequest(LocalDateTime lastTimestamp, String staticRequestId) throws APIException {
 
             this.lastTimestamp = lastTimestamp;
-            this.staticAuthCookie = getClient().getApiKey();
-            this.dynamicRequestId = Random.str(64);
-            getNewRequestId();
+            this.staticRequestId = staticRequestId;
+            this.dynamicRequestAuth = getDynamicRequestAuth();
 
         }
 
-        public String getDynamicRequestId() {
-            return dynamicRequestId;
+        public String getDynamicRequestAuth() {
+            return dynamicRequestAuth;
         }
 
-        public String getStaticAuthCookie() {
-            return staticAuthCookie;
+        public String getRequestId() {
+            return staticRequestId;
         }
 
-        public boolean authCookieVerifies(String staticAuthCookie) {
-            return this.staticAuthCookie.equals(staticAuthCookie);
+        public boolean requestAuthVerifies(String received) {
+            String hmac = SHA.getHmac384(getDynamicRequestAuth(),
+                    EncodingUtils.fromHex(clientSession.getSession().getRandomBytes()));
+            boolean res = hmac.equals(received);
+            if(res)
+                this.dynamicRequestAuth = SHA.get384(hmac);
+            return res;
         }
 
-        public boolean requestIdVerifies(String dynamicRequestId, boolean update) throws APIException {
-            boolean retVal = this.dynamicRequestId.equals(dynamicRequestId);
-            if(retVal && update) {
-                getNewRequestId();
-            }
-            return retVal;
-        }
-
-        public void getNewRequestId() throws APIException {
-
-            try {
-                String hexVal = SHA.getSha1(SHA.getHmac256(SHA.getHmac256(
-                        dynamicRequestId,
-                        clientSession.getSession().getSessionId()),
-                        getClient().getApiKey()));
-                dynamicRequestId = hexVal;
-            } catch (Exception ex) {
-                throw new APIException(ex.getMessage());
-            }
-
+        public void requestComplete(APIResponse response) {
+            this.response = response;
         }
 
     }

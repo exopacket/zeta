@@ -9,13 +9,11 @@ public class ClientInfo {
     private String remoteIp;
     private ArrayList<String> remoteHostname;
     private ArrayList<String> userAgent;
-
     private boolean hostnameFlag = false;
     private boolean userAgentFlag = false;
-
     private int numIpRequests = 0;
 
-    public ClientInfo(Headers headers, String remoteIp, int remotePort, String remoteHostname) {
+    public ClientInfo(Headers headers, String remoteIp, String remoteHostname) {
         userAgent.add(headers.getFirst("User-Agent"));
         this.remoteHostname.add(remoteHostname);
         this.remoteIp = remoteIp;
@@ -59,6 +57,10 @@ public class ClientInfo {
         return remoteIp;
     }
 
+    public void incrementIpRequests() {
+        numIpRequests++;
+    }
+
     public String getLastHostname() {
         return remoteHostname.get(remoteHostname.size() - 1);
     }
@@ -70,7 +72,6 @@ public class ClientInfo {
     public int numHostnameEntries() {
         return remoteHostname.size();
     }
-
     public boolean isFlagged() {
         return (hostnameFlag || userAgentFlag);
     }

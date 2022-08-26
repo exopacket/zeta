@@ -4,11 +4,8 @@ import com.inteliense.trusty.utils.EncodingUtils;
 import com.inteliense.trusty.utils.Random;
 import com.inteliense.trusty.utils.SHA;
 
-import java.security.PrivateKey;
-import java.security.PublicKey;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
-import java.util.Base64;
 
 public class APISession {
 
@@ -20,28 +17,28 @@ public class APISession {
     private LocalDateTime started;
     private LocalDateTime lastRequest;
     private int requestCount = 0;
-    private ClientInfo info;
-
-    private APIServerType serverType;
     private APIKeyPair apiKeys;
     private ZeroTrustKeyPairs zeroTrustKeyPairs;
     private boolean isActive = true;
+    private ArrayList<LocalDateTime> recentRequests = new ArrayList<LocalDateTime>();
+    private int minutesTillInvalid = 30;
 
-    private ArrayList<LocalDateTime> recentRequests;
-    private int requestsPerMinute = 60;
-
-    public APISession(ClientInfo info, APIKeyPair apiKeys, APIServerType serverType, int requestsPerMinute) throws APIException {
+    public APISession(APIKeyPair apiKeys, String ipAddr, APIServerType serverType, int minutesTillInvalid) throws APIException {
 
         if(serverType == APIServerType.ZERO_TRUST) {
-            this.sessionId = createSessionId();
+            this.sessionId = createSessionId(ipAddr);
             this.randomBytes = Random.secure(96);
+            this.sessionAuth = createInitialSessionAuth(apiKeys.getKey());
         }
         this.apiKeys = apiKeys;
         this.started = LocalDateTime.now();
         this.lastRequest = LocalDateTime.now();
-        this.info = info;
-        this.requestsPerMinute = requestsPerMinute;
+        this.minutesTillInvalid = minutesTillInvalid;
 
+    }
+
+    public APIKeyPair getApiKeys() {
+        return apiKeys;
     }
 
     public LocalDateTime getLastRequest() {
@@ -51,13 +48,22 @@ public class APISession {
     public LocalDateTime getStarted() {
         return started;
     }
-
     public String getClientId() {
         return clientId;
     }
-
     public String getSessionId() {
         return sessionId;
+    }
+    public boolean invalidateByTime() {
+
+        LocalDateTime limit = LocalDateTime.now().plusMinutes(minutesTillInvalid);
+        if(LocalDateTime.now().isAfter(limit)) {
+            deactivate();
+            return true;
+        }
+
+        return false;
+
     }
 
     public int getRecentRequests() {
@@ -72,8 +78,16 @@ public class APISession {
 
     }
 
-    public String getSessionAuth() {
+    public String getDynamicSessionAuth() {
         return sessionAuth;
+    }
+
+    public boolean checkDynamicSessionAuth(String received) {
+        String hmac = SHA.getHmac384(getDynamicSessionAuth(), randomBytes);
+        boolean res = hmac.equals(received);
+        if(res)
+            this.sessionAuth = SHA.get384(hmac);
+        return res;
     }
 
     public boolean isActive() {
@@ -95,6 +109,22 @@ public class APISession {
     }
     public String getUserId() {
         return userId;
+    }
+
+    public void setUserId(String userId) {
+        this.userId = userId;
+    }
+
+    public void setClientId(String clientId) {
+        this.clientId = clientId;
+    }
+
+    public int getRequestCount() {
+        return requestCount;
+    }
+
+    public void setApiKeys(APIKeyPair apiKeys) {
+        this.apiKeys = apiKeys;
     }
 
     public String getKeySetId() {
@@ -120,26 +150,8 @@ public class APISession {
         return zeroTrustKeyPairs.getServerPrivate();
     }
 
-    public ClientInfo getClientInfo() {
-        return info;
-    }
+    private String createSessionId(String ipAddr) throws APIException {
 
-    public String updateClientAuth(String apiKey) throws APIException {
-
-        try {
-            String hexVal = SHA.getSha1(SHA.getHmac256(SHA.getHmac256(sessionAuth, sessionId), apiKey));
-            String base64Val = Base64.getEncoder().encodeToString(EncodingUtils.fromHex(hexVal));
-            this.sessionAuth = base64Val;
-            return base64Val;
-        } catch (Exception ex) {
-            throw new APIException(ex.getMessage());
-        }
-
-    }
-
-    private String createSessionId() throws APIException {
-
-        String ipAddr = info.getRemoteIp();
         String apiSecret = apiKeys.getSecret();
         String value = ipAddr + ";" + apiSecret;
         return SHA.getSha1(SHA.getHmac384(value, Random.secure(96)));
@@ -149,19 +161,6 @@ public class APISession {
     private String createInitialSessionAuth(String apiKey) throws APIException {
 
         return SHA.getHmac384(sessionId, randomBytes);
-
-    }
-
-    private boolean verifyInitHash(String hash, String ipAddress, String apiKey) throws APIException {
-
-        try {
-            String hexHmac = SHA.getHmac256(ipAddress, apiKey);
-            String hexVal = SHA.get256(Base64.getEncoder().encodeToString(EncodingUtils.fromHex(hexHmac)));
-            String base64Val = Base64.getEncoder().encodeToString(EncodingUtils.fromHex(hexVal));
-            return base64Val.equals(hash);
-        } catch (Exception ex) {
-            throw new APIException(ex.getMessage());
-        }
 
     }
 

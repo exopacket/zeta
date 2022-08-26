@@ -18,11 +18,7 @@ public class APIServerConfig {
     private String apiPath = "/";
     private String responseServerPath = "/";
     private int maxSessions = 0;
-    private String sessionClosePath = "";
-    private String sessionInitPath = "";
-    private String sessionKeyTransferPath = "";
-
-    private APIResources apiResources;
+    private int minutesTillInvalid = 30;
     private CORSPolicy corsPolicy;
     private String[] zeroTrustSessionPaths = new String[]{".", ".", "."};
 
@@ -48,26 +44,10 @@ public class APIServerConfig {
         setApiPath(serverPath);
     }
 
-    public static APIServerConfig zeroTrustDefault() {
-        return null;
-    }
-
-    public String getSessionClosePath() {
-        return sessionClosePath;
-    }
-
-    public String getSessionInitPath() {
-        return sessionInitPath;
-    }
-
-    public String getSessionKeyTransferPath() {
-        return sessionKeyTransferPath;
-    }
-
     public void setSessionResourcePaths(String sessionInitPath, String sessionKeyTransferPath, String sessionClosePath) {
-        this.sessionInitPath = sessionInitPath;
-        this.sessionKeyTransferPath = sessionKeyTransferPath;
-        this.sessionClosePath = sessionClosePath;
+        zeroTrustSessionPaths[0] = sessionInitPath;
+        zeroTrustSessionPaths[1] = sessionKeyTransferPath;
+        zeroTrustSessionPaths[2] = sessionClosePath;
     }
 
     public String[] getZeroTrustSessionPaths() {
@@ -92,6 +72,14 @@ public class APIServerConfig {
 
         return (responseServerKeystorePath == null) ? apiServerKeystorePath : responseServerKeystorePath;
 
+    }
+
+    public int getMinutesTillInvalid() {
+        return minutesTillInvalid;
+    }
+
+    public void setMinutesTillInvalid(int minutesTillInvalid) {
+        this.minutesTillInvalid = minutesTillInvalid;
     }
 
     public String getResponseServerKeyPassword() {
@@ -119,6 +107,7 @@ public class APIServerConfig {
     public int getRequestsPerMinute() {
         return requestsPerMinute;
     }
+
 
     public String getResponseServerPath() {
         return responseServerPath;
@@ -155,6 +144,21 @@ public class APIServerConfig {
 
     public String getApiPath() {
         return this.apiPath;
+    }
+
+    public void setResponsePort(int port) {
+        responsePort = port;
+    }
+    public void setResponseServerPath(String responseServerPath) {
+        this.responseServerPath = responseServerPath;
+    }
+
+    public void setServerResponseType(APIServerType serverResponseType) {
+        this.serverResponseType = serverResponseType;
+    }
+
+    public void setRequestsPerMinute(int requestsPerMinute) {
+        this.requestsPerMinute = requestsPerMinute;
     }
 
     public void setResponseServerKeyPassword(String keyPassword) {

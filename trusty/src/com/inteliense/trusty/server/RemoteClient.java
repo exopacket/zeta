@@ -2,13 +2,15 @@ package com.inteliense.trusty.server;
 
 import com.sun.net.httpserver.Headers;
 
+import java.rmi.Remote;
 import java.util.ArrayList;
 
 public abstract class RemoteClient {
 
-    private ArrayList<APISession> sessions;
     private APIServer server;
     private APIKeyPair apiKeys;
+    private ClientInfo clientInfo;
+
     public static final RemoteClient NONE = null;
 
     public RemoteClient(APIKeyPair apiKeys, APIServer server) throws APIException {
@@ -23,36 +25,39 @@ public abstract class RemoteClient {
     public APIServer getServer() {
         return this.server;
     }
+    public ClientInfo getClientInfo() {
+        return clientInfo;
+    }
+
+    public void setClientInfo(ClientInfo clientInfo) {
+        this.clientInfo = clientInfo;
+    }
 
     public boolean equals(APIKeyPair apiKeys) {
         return getApiKey().equals(apiKeys.getKey());
     }
 
-    public boolean equals(String sessionId) {
-        return findSession(sessionId) != null;
+    public boolean equals(String remoteIp) {
+        return clientInfo.getRemoteIp().equals(this.clientInfo.getRemoteIp());
     }
 
-    public APISession getSession(String sessionId) {
-        return findSession(sessionId);
+    public boolean isFlagged(Headers headers, String hostname) {
+        clientInfo.verifyHostname(hostname);
+        clientInfo.verifyUserAgent(headers.getFirst("User-Agent"));
+        return clientInfo.isFlagged();
+    }
+
+    public void newRequest() {
+        clientInfo.incrementIpRequests();
     }
 
     public abstract boolean isLimited(int perMinute);
 
     public abstract boolean inBlacklist();
-    //public abstract boolean lookupApiKeys(String apiKey);
 
     public abstract boolean isAuthenticated(Headers headers, APIResource resource, Parameters params);
 
     public abstract boolean lookupUserInfo();
-
-    private APISession findSession(String sessionId) {
-        for(int i=0; i<sessions.size(); i++) {
-            APISession curr = sessions.get(i);
-            if(curr.getSessionId().equals(sessionId))
-                return curr;
-        }
-        return null;
-    }
 
 
 

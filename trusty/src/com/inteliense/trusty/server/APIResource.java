@@ -8,7 +8,6 @@ public abstract class APIResource implements APIExecute {
     private ArrayList<String> parameters = new ArrayList<String>();
     private String requestMethod = "GET";
     private String value = "";
-
     private boolean isAsync = false;
 
     public void setParameters(String[] parameters) {
