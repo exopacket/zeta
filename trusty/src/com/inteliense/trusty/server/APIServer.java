@@ -26,6 +26,8 @@ public abstract class APIServer implements ClientFilter {
     //ADD XML SUPPORT
 
     // SESSION HIJACKING PREVENTION BY DYNAMIC API SECRET KEY ACROSS ONE OR MULTIPLE CLIENTS
+    
+    // ALL SECRET KEYS ARE 63 bytes including a 'secret_' prefix.
 
     //                  SESSION INITIALIZATION REQUEST
     //----->            CLIENT SECURE RANDOM (48 BYTES)
