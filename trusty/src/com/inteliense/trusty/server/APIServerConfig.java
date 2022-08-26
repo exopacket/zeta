@@ -19,6 +19,7 @@ public class APIServerConfig {
     private String responseServerPath = "/";
     private int maxSessions = 0;
     private int minutesTillInvalid = 30;
+    private boolean useDynamicApiKey = false;
     private CORSPolicy corsPolicy;
     private String[] zeroTrustSessionPaths = new String[]{".", ".", "."};
 
@@ -72,6 +73,14 @@ public class APIServerConfig {
 
         return (responseServerKeystorePath == null) ? apiServerKeystorePath : responseServerKeystorePath;
 
+    }
+
+    public void useDynamicApiKey(boolean val) {
+        useDynamicApiKey = val;
+    }
+
+    public boolean useDynamicApiKey() {
+        return useDynamicApiKey;
     }
 
     public int getMinutesTillInvalid() {

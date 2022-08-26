@@ -47,7 +47,7 @@ public class APIResponse {
         JSONObject obj = new JSONObject();
         String keySetId = clientSession.getSession().getKeySetId();
 
-        String encrypted = RSA.decrypt(
+        String encrypted = RSA.encrypt(
                 response, clientSession
                         .getSession()
                         .getClientPublicKey()
@@ -114,13 +114,6 @@ public class APIResponse {
 
     public void setResponse(String response) {
         this.response = response;
-    }
-
-    //TODO add override methods through new interface for custom formats
-    public void addNewSessionAuth(String val) {
-        JSONObject obj = JSON.getObject(response);
-        obj.put("new_session_auth", val);
-        response = JSON.getString(obj);
     }
     public void setResponse(JSONObject obj) throws Exception {
         this.response = JSON.getString(obj);

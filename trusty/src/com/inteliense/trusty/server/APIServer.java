@@ -13,12 +13,42 @@ import java.net.URI;
 import java.rmi.Remote;
 import java.security.*;
 import java.security.cert.CertificateException;
+import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.Base64;
 import java.util.HashMap;
 import java.util.Scanner;
 
 public abstract class APIServer implements ClientFilter {
+
+    //TODO
+    //ADD XML SUPPORT
+
+    // SESSION HIJACKING PREVENTION BY DYNAMIC API SECRET KEY ACROSS ONE OR MULTIPLE CLIENTS
+
+    //                  SESSION INITIALIZATION REQUEST
+    //----->            CLIENT SECURE RANDOM (48 BYTES)
+    //----->    	 	HMAC512(input: original_secret_key, key: api_key)
+    //----->    	 	AES-GCM(input: client_created_secret_key, key: first_32_bytes_client_random, iv: next_16_bytes_client_random)
+    //AUTHORIZATION= 	SUMMATION OF THE TWO 64 bytes
+
+    //                  SESSION INITIALIZATION RESPONSE
+    //<-----            SERVER SECURE RANDOM (96 BYTES)
+    //<-----    		HMAC512(input: client_created_secret_key, key: api_key)
+    //<-----    		AES-CBC(input: server_created_secret_key, key: first_32_bytes_client_random, iv: secure_random)
+    //AUTHORIZATION= 	SUMMATION OF THE TWO 64 bytes
+
+    //                  SUBSEQUENT REQUESTS
+    //----->    		HMAC512(input: server_created_secret_key, key: api_key)
+    //----->    		AES-CBC(input: client_created_secret_key, key: first_32_bytes_client_random, iv: secure_random)
+    //AUTHORIZATION= 	SUMMATION OF THE TWO 64 bytes
+
+    //                  SUBSEQUENT RESPONSES
+    //<-----    		HMAC512(input: client_created_secret_key, key: api_key)
+    //<-----    		AES-CBC(input: server_created_secret_key, key: first_32_bytes_client_random, iv: secure_random)
+    //AUTHORIZATION= 	SUMMATION OF THE TWO 64 bytes
+
 
     private APIServerConfig config;
     private APIResponseServer responseServer;
@@ -118,6 +148,18 @@ public abstract class APIServer implements ClientFilter {
 
     public APIResources getApiResources() {
         return resources;
+    }
+
+    public void invalidateSession(ClientSession clientSession) {
+
+        for(int i=clientSessions.size() - 1; i>=0; i--) {
+            if(clientSessions.get(i).equals(clientSession)) {
+                clientSession.getSession().deactivate();
+                pastSessions.add(clientSession.getSession());
+                clientSessions.remove(i);
+            }
+        }
+
     }
 
     public APIResponse execute(ClientSession clientSession, APIResource resource, Parameters parameters) {
@@ -315,7 +357,7 @@ public abstract class APIServer implements ClientFilter {
             String remoteAddr = t.getRemoteAddress().toString();
             String[] ipParts = remoteAddr.split(":");
             String leftSide = ipParts[0];
-            String port = ipParts[1];
+            //String port = ipParts[1];
             String[] leftParts = leftSide.split("/");
             String hostname = leftParts[0];
             String ipAddr = leftParts[1];
@@ -380,6 +422,13 @@ public abstract class APIServer implements ClientFilter {
                             headers, ipAddr, hostname
                     ));
                     client = clientSession.getClient();
+
+                    if(!verifyApiAuthorization(headers, apiKeys, true)) {
+                        invalidateSession(clientSession);
+                        noApiKey(t);
+                        return;
+                    }
+
                 } catch (Exception e) {
                     serverError(t);
                     return;
@@ -400,6 +449,14 @@ public abstract class APIServer implements ClientFilter {
 
                     clientSessionIndex = findClientSession(client, headers.getFirst("X-Api-Session-Id"));
 
+                    if(clientSessionIndex > 0) {
+                        if(!verifyApiAuthorization(headers, apiKeys, false)) {
+                            invalidateSession(clientSession);
+                            noApiKey(t);
+                            return;
+                        }
+                    }
+
                 } else {
 
                     if (config.getZeroTrustSessionPaths()[0].equals(resource)) {
@@ -414,6 +471,12 @@ public abstract class APIServer implements ClientFilter {
                             clientSessions.add(new ClientSession(new ClientInfo(
                                     headers, remoteAddr, hostname
                             ), client, createdSession));
+
+                            if(!verifyApiAuthorization(headers, apiKeys, true)) {
+                                invalidateSession(clientSession);
+                                noApiKey(t);
+                                return;
+                            }
 
                         } catch (APIException e) {
                             serverError(t);
@@ -511,6 +574,7 @@ public abstract class APIServer implements ClientFilter {
                 serverError(t);
                 return;
             }
+
             boolean isAsync = resources.getResource(resource).isAsync();
 
             try {
@@ -537,7 +601,7 @@ public abstract class APIServer implements ClientFilter {
                         serverError(t);
                         break;
                     case SUCCESSFUL:
-                        sendResponse(t, 200, responseBody, contentType);
+                        sendResponse(t, 200, responseBody, contentType, clientSession);
                         break;
 
                 }
@@ -566,19 +630,39 @@ public abstract class APIServer implements ClientFilter {
 
         }
 
+        private boolean verifyApiAuthorization(Headers headers, APIKeyPair apiKeys, boolean isNewSession) {
+
+            if(config.useDynamicApiKey()) {
+
+                String randomBytes = headers.getFirst("X-Api-Random-Bytes");
+                String apiAuthorization = headers.getFirst("X-Api-Authorization");
+                return (isNewSession) ?
+                        apiKeys.initialInbound(apiAuthorization, randomBytes) :
+                        apiKeys.inbound(apiAuthorization, randomBytes);
+
+            } else { return true; }
+
+        }
+
         private boolean verifyRequestSignature(Headers headers, HttpExchange t, String body, APIKeyPair apiKeys) {
+
             String urlPath = t.getRequestURI().getPath();
+
             System.out.println(urlPath);
+
             String timestamp = headers.getFirst("X-Request-Timestamp");
             String apiKey = apiKeys.getKey();
-            String apiSecret = apiKeys.getSecret();
+            String apiAuthorization = (config.useDynamicApiKey()) ?
+                    headers.getFirst("X-Api-Authorization") :
+                    apiKeys.getSecret();
 
-            String key = apiKey + ";" + urlPath + ";" + timestamp + ";" + body;
-            String sig = SHA.getHmac384(apiSecret, key);
+            String value = apiAuthorization + urlPath + timestamp + body;
+            String sig = SHA.getHmac384(value, apiKey);
 
             String sigReceived = headers.getFirst("X-Request-Signature");
 
             return sig.equals(sigReceived);
+
         }
 
         private boolean sessionAllowed(RemoteClient client) {
@@ -596,6 +680,23 @@ public abstract class APIServer implements ClientFilter {
             return (numSessions >= config.getMaxSessions());
 
         }
+
+        private int getNumSessions(RemoteClient client) {
+
+            int numSessions = 0;
+
+            for(int i=0; i<clientSessions.size(); i++) {
+
+                RemoteClient current = clientSessions.get(i).getClient();
+                if(current.equals(client))
+                    numSessions++;
+
+            }
+
+            return numSessions;
+
+        }
+
         private int findClientSession(RemoteClient client, String sessionId) {
 
             for(int i=0; i<clientSessions.size(); i++) {
@@ -693,6 +794,12 @@ public abstract class APIServer implements ClientFilter {
                         || !headers.containsKey("X-Api-Client-Id")
                         || !headers.containsKey("X-Api-Session-Authorization")
                 ) {
+                    return false;
+                }
+
+                if(config.useDynamicApiKey() && (
+                           !headers.containsKey("X-Api-Authorization")
+                        || !headers.containsKey("X-Api-Random-Bytes"))) {
                     return false;
                 }
 
@@ -860,7 +967,6 @@ public abstract class APIServer implements ClientFilter {
                 Parameters decryptedParams = new Parameters(_getParameters(decrypted));
 
                 APIResponse resp = execute(clientSession, resource, decryptedParams);
-                resp.addNewSessionAuth(clientSession.getSession().getDynamicSessionAuth());
                 resp.encrypt();
                 return resp;
 
@@ -876,7 +982,6 @@ public abstract class APIServer implements ClientFilter {
 
                 Parameters decryptedParams = new Parameters(_getParameters(decrypted));
                 APIResponse resp = execute(clientSession, resource, decryptedParams);
-                resp.addNewSessionAuth(clientSession.getSession().getDynamicSessionAuth());
                 resp.encrypt();
                 return resp;
 
@@ -987,7 +1092,7 @@ public abstract class APIServer implements ClientFilter {
                 String correctHash = SHA.getHmac256(SHA.get256(correctSecretKey), correctApiKey);
 
                 if(correctHash.equals(receivedHash)) {
-                    clientSession.getSession().deactivate();
+                    invalidateSession(clientSession);
                     JSONObject obj = new JSONObject();
                     obj.put("request_status", "success");
                     return new APIResponse(clientSession, obj, ResponseCode.SUCCESSFUL);
@@ -1062,6 +1167,121 @@ public abstract class APIServer implements ClientFilter {
                             config.getCorsPolicy().getCommaSeparated(
                                     config.getCorsPolicy().getMethods()
                             ));
+                }
+
+                String contentTypeStr = "";
+
+                switch (contentType) {
+                    case XML:
+                        contentTypeStr = "application/xml";
+                        break;
+                    case HTML:
+                        contentTypeStr = "text/html";
+                        break;
+                    case JSON:
+                        contentTypeStr = "application/json";
+                        break;
+                    case TEXT:
+                    default:
+                        contentTypeStr = "text/plain";
+                        break;
+                }
+
+                t.getResponseHeaders().add("Content-Type", contentTypeStr);
+                t.sendResponseHeaders(code, response.length());
+
+                OutputStream os = t.getResponseBody();
+                os.write(response.getBytes());
+                os.close();
+
+            } catch (Exception ex) {
+                ex.printStackTrace();
+            }
+
+        }
+
+        private void sendResponse(HttpExchange t, int code, String response, ContentType contentType, ClientSession clientSession) {
+
+            try {
+
+                if(config.getCorsPolicy().isPermitted()) {
+                    t.getResponseHeaders().add("Access-Control-Allow-Origin",
+                            config.getCorsPolicy().getCommaSeparated(
+                                    config.getCorsPolicy().getOrigins()
+                            ));
+                    t.getResponseHeaders().add("Access-Control-Allow-Headers",
+                            config.getCorsPolicy().getCommaSeparated(
+                                    config.getCorsPolicy().getHeaders()
+                            ));
+                    t.getResponseHeaders().add("Access-Control-Allow-Methods",
+                            config.getCorsPolicy().getCommaSeparated(
+                                    config.getCorsPolicy().getMethods()
+                            ));
+                }
+
+                if(config.getServerType() == APIServerType.ZERO_TRUST) {
+
+                    t.getResponseHeaders().add(
+                            "X-Api-Session-Authorization",
+                            clientSession.getSession().getDynamicSessionAuth()
+                    );
+
+                    if(config.useDynamicApiKey()) {
+
+                        t.getResponseHeaders().add(
+                                "X-Api-Random-Bytes",
+                                clientSession.getSession().getApiKeys().getOutboundIv()
+                        );
+
+                        //TODO
+                        //FIXME
+                        //For each session a client has open, create a header array of clients (clientId),
+                        //timestamps (client's request time), and their respective api keys to use as the AES-CBC payload
+                        //outbound to each client
+
+                        if(getNumSessions(clientSession.getClient()) > 1) {
+
+                            t.getResponseHeaders().add(
+                                    "X-Api-Authorization",
+                                    clientSession.getSession().getApiKeys().getOutboundSigningKey()
+                            );
+
+                            t.getResponseHeaders().add(
+                                    "X-Server-Timestamp",
+                                    String.valueOf(LocalDateTime.now().toEpochSecond(ZoneOffset.UTC))
+                            );
+
+                            t.getResponseHeaders().add(
+                                    "X-Client-Timestamp",
+                                    clientSession.getSession().getApiKeys().getClientTimestamp()
+                            );
+
+                            t.getResponseHeaders().add(
+                                    "X-Multi-Client-Id",
+                                    clientSession.getSession().getApiKeys().getClientTimestamp()
+                            );
+
+                        } else {
+
+                            t.getResponseHeaders().add(
+                                    "X-Api-Authorization",
+                                    clientSession.getSession().getApiKeys().getOutboundSigningKey()
+                            );
+
+                            t.getResponseHeaders().add(
+                                    "X-Server-Timestamp",
+                                    String.valueOf(LocalDateTime.now().toEpochSecond(ZoneOffset.UTC))
+                            );
+
+                            t.getResponseHeaders().add(
+                                    "X-Client-Timestamp",
+                                    clientSession.getSession().getApiKeys().getClientTimestamp()
+                            );
+
+                        }
+
+                    }
+
                 }
 
                 String contentTypeStr = "";

@@ -13,6 +13,8 @@ public class APISession {
     private String clientId;
     private String userId;
     private String sessionAuth;
+
+    private String signingKey;
     private byte[] randomBytes;
     private LocalDateTime started;
     private LocalDateTime lastRequest;
@@ -28,7 +30,7 @@ public class APISession {
         if(serverType == APIServerType.ZERO_TRUST) {
             this.sessionId = createSessionId(ipAddr);
             this.randomBytes = Random.secure(96);
-            this.sessionAuth = createInitialSessionAuth(apiKeys.getKey());
+            this.sessionAuth = createInitialSessionAuth();
         }
         this.apiKeys = apiKeys;
         this.started = LocalDateTime.now();
@@ -56,7 +58,7 @@ public class APISession {
     }
     public boolean invalidateByTime() {
 
-        LocalDateTime limit = LocalDateTime.now().plusMinutes(minutesTillInvalid);
+        LocalDateTime limit = lastRequest.plusMinutes(minutesTillInvalid);
         if(LocalDateTime.now().isAfter(limit)) {
             deactivate();
             return true;
@@ -158,7 +160,7 @@ public class APISession {
 
     }
 
-    private String createInitialSessionAuth(String apiKey) throws APIException {
+    private String createInitialSessionAuth() throws APIException {
 
         return SHA.getHmac384(sessionId, randomBytes);
 

@@ -75,6 +75,7 @@ public abstract class API implements APIMethods {
     public HashMap<String, String> getParameters(String body, ContentType contentType) {
         return new HashMap<String, String>();
     }
+
     public boolean isAuthenticated(Headers headers, APIResource resource, Parameters params, ClientSession clientSession) {
 
         if(headers.containsKey("X-Api-Session-Id")) {
@@ -86,25 +87,32 @@ public abstract class API implements APIMethods {
             String clientId = headers.getFirst("X-Api-Client-Id");
             String sessionAuth = headers.getFirst("X-Api-Session-Authorization");
 
+            boolean flag = false;
+
             if(!apiKey.equals(clientSession.getClient().getApiKey()))
-                return false;
+                flag = true;
 
             if(!sessionId.equals(clientSession.getSession().getSessionId()))
-                return false;
+                flag = true;
 
             if(!keySetId.equals(clientSession.getSession().getKeySetId()))
-                return false;
+                flag = true;
 
             if(!userId.equals(clientSession.getSession().getUserId()))
-                return false;
+                flag = true;
 
             if(!clientId.equals(clientSession.getSession().getClientId()))
-                return false;
+                flag = true;
 
             if(!clientSession.getSession().checkDynamicSessionAuth(sessionAuth))
-                return false;
+                flag = true;
 
-            return true;
+            if(flag) {
+                APIServer server = clientSession.getClient().getServer();
+                server.invalidateSession(clientSession);
+            }
+
+            return !flag;
 
         } else {
 
@@ -135,6 +143,7 @@ public abstract class API implements APIMethods {
         return false;
 
     }
+
     public boolean inBlacklist(ClientSession clientSession) {
 
         for(int i=0; i<blacklist.size(); i++) {
