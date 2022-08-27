@@ -1,12 +1,6 @@
 package com.inteliense.trusty.server;
 
-import com.inteliense.trusty.utils.EncodingUtils;
-import com.inteliense.trusty.utils.SHA;
-import com.sun.net.httpserver.Headers;
-import org.json.simple.JSONObject;
-
 import java.util.ArrayList;
-import java.util.Base64;
 import java.util.HashMap;
 
 public abstract class API implements APIMethods {
@@ -40,7 +34,7 @@ public abstract class API implements APIMethods {
             }
 
             @Override
-            public boolean isAuthenticated(Headers headers, APIResource resource, Parameters params, ClientSession clientSession) {
+            public boolean isAuthenticated(RequestHeaders headers, APIResource resource, Parameters params, ClientSession clientSession) {
                 return API.this.isAuthenticated(headers, resource, params, clientSession);
             }
 
@@ -48,11 +42,11 @@ public abstract class API implements APIMethods {
             public boolean lookupUserInfo(ClientSession clientSession) {
                 return API.this.lookupUserInfo(clientSession);
             }
-
             @Override
             public APIKeyPair lookupApiKeys(String apiKey) {
                 return API.this.lookupApiKey(apiKey);
             }
+
         };
 
     }
@@ -71,21 +65,53 @@ public abstract class API implements APIMethods {
         return server.addResource(value, parameters, definition);
     }
 
+    public APIResource addResource(String value, boolean isAsync, ArrayList<String> parameters, APIResource definition) {
+
+        if(serverConfig.getServerResponseType() == APIServerType.ZERO_TRUST_SYNC
+                || serverConfig.getServerResponseType() == APIServerType.REST_SYNC) {
+            return server.addResource(value, parameters, definition);
+        }
+
+        return server.addResource(value, isAsync, parameters, definition);
+    }
+
+    public APIResource addResource(String value, boolean isAsync, APIResource definition) {
+
+        if(serverConfig.getServerResponseType() == APIServerType.ZERO_TRUST_SYNC
+                || serverConfig.getServerResponseType() == APIServerType.REST_SYNC) {
+            return server.addResource(value, definition);
+        }
+
+        return server.addResource(value, isAsync, definition);
+
+    }
+
+    public APIResource addResource(String value, boolean isAsync, String[] parameters, APIResource definition) {
+
+        if(serverConfig.getServerResponseType() == APIServerType.ZERO_TRUST_SYNC
+                || serverConfig.getServerResponseType() == APIServerType.REST_SYNC) {
+            return server.addResource(value, parameters, definition);
+        }
+
+        return server.addResource(value, isAsync, parameters, definition);
+
+    }
+
     //IF REQUEST BODY IS NOT IN JSON FORMAT THIS MUST BE OVERRIDE
     public HashMap<String, String> getParameters(String body, ContentType contentType) {
         return new HashMap<String, String>();
     }
 
-    public boolean isAuthenticated(Headers headers, APIResource resource, Parameters params, ClientSession clientSession) {
+    public boolean isAuthenticated(RequestHeaders headers, APIResource resource, Parameters params, ClientSession clientSession) {
 
-        if(headers.containsKey("X-Api-Session-Id")) {
+        if(headers.contains("X-Api-Session-Id")) {
 
-            String apiKey = headers.getFirst("X-Api-Key");
-            String sessionId = headers.getFirst("X-Api-Session-Id");
-            String keySetId = headers.getFirst("X-Api-Key-Set-Id");
-            String userId = headers.getFirst("X-Api-User-Id");
-            String clientId = headers.getFirst("X-Api-Client-Id");
-            String sessionAuth = headers.getFirst("X-Api-Session-Authorization");
+            String apiKey = headers.getString("X-Api-Key");
+            String sessionId = headers.getString("X-Api-Session-Id");
+            String keySetId = headers.getString("X-Api-Key-Set-Id");
+            String userId = headers.getString("X-Api-User-Id");
+            String clientId = headers.getString("X-Api-Client-Id");
+            String sessionAuth = headers.getString("X-Api-Session-Authorization");
 
             boolean flag = false;
 
@@ -116,7 +142,7 @@ public abstract class API implements APIMethods {
 
         } else {
 
-            String apiKey = headers.getFirst("X-Api-Key");
+            String apiKey = headers.getString("X-Api-Key");
 
             if(!apiKey.equals(clientSession.getClient().getApiKey()))
                 return false;

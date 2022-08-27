@@ -2,9 +2,6 @@ package com.inteliense.trusty.server;
 
 import com.sun.net.httpserver.Headers;
 
-import java.rmi.Remote;
-import java.util.ArrayList;
-
 public abstract class RemoteClient {
 
     private APIServer server;
@@ -41,9 +38,9 @@ public abstract class RemoteClient {
         return clientInfo.getRemoteIp().equals(this.clientInfo.getRemoteIp());
     }
 
-    public boolean isFlagged(Headers headers, String hostname) {
+    public boolean isFlagged(RequestHeaders headers, String hostname) {
         clientInfo.verifyHostname(hostname);
-        clientInfo.verifyUserAgent(headers.getFirst("User-Agent"));
+        clientInfo.verifyUserAgent(headers.getString("User-Agent"));
         return clientInfo.isFlagged();
     }
 
@@ -55,7 +52,7 @@ public abstract class RemoteClient {
 
     public abstract boolean inBlacklist();
 
-    public abstract boolean isAuthenticated(Headers headers, APIResource resource, Parameters params);
+    public abstract boolean isAuthenticated(RequestHeaders headers, APIResource resource, Parameters params);
 
     public abstract boolean lookupUserInfo();
 

@@ -1,7 +1,5 @@
 package com.inteliense.trusty.server;
 
-import com.sun.net.httpserver.Headers;
-
 import java.util.ArrayList;
 
 public class ClientInfo {
@@ -13,8 +11,8 @@ public class ClientInfo {
     private boolean userAgentFlag = false;
     private int numIpRequests = 0;
 
-    public ClientInfo(Headers headers, String remoteIp, String remoteHostname) {
-        userAgent.add(headers.getFirst("User-Agent"));
+    public ClientInfo(RequestHeaders headers, String remoteIp, String remoteHostname) {
+        userAgent.add(headers.getString("User-Agent"));
         this.remoteHostname.add(remoteHostname);
         this.remoteIp = remoteIp;
     }

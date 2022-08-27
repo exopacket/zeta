@@ -1,5 +1,7 @@
 package com.inteliense.trusty.server;
 
+import com.inteliense.trusty.utils.EncodingUtils;
+
 import java.util.HashMap;
 
 public class Parameters {
@@ -36,5 +38,8 @@ public class Parameters {
 
     }
 
+    public String[] getArr(String key, String delimiter) {
+        return EncodingUtils.splitStr(values.get(key), delimiter);
+    }
 
 }

@@ -7,8 +7,16 @@ public class APIResources {
     private ArrayList<String> resources = new ArrayList<String>();
     private ArrayList<APIResource> definitions = new ArrayList<APIResource>();
 
+    public void removeAt(int index) {
+        resources.remove(index);
+        definitions.remove(index);
+    }
     public ArrayList<String> getResourcesList() {
         return resources;
+    }
+
+    public int getSize() {
+        return resources.size();
     }
 
     public int getIndex(String resource) {
@@ -58,6 +66,32 @@ public class APIResources {
         resources.add(path);
         definitions.add(definition);
         getResource(path).setParameters(parameters);
+
+    }
+
+    public void addResource(String path, boolean isAsync, APIResource definition) {
+
+        resources.add(path);
+        definitions.add(definition);
+        getResource(path).isAsync(isAsync);
+
+    }
+
+    public void addResource(String path, boolean isAsync, String[] parameters, APIResource definition) {
+
+        resources.add(path);
+        definitions.add(definition);
+        getResource(path).setParameters(parameters);
+        getResource(path).isAsync(isAsync);
+
+    }
+
+    public void addResource(String path, boolean isAsync, ArrayList<String> parameters, APIResource definition) {
+
+        resources.add(path);
+        definitions.add(definition);
+        getResource(path).setParameters(parameters);
+        getResource(path).isAsync(isAsync);
 
     }
 

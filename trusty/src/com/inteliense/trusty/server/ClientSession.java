@@ -39,7 +39,7 @@ public class ClientSession {
                 }
 
                 @Override
-                public boolean isAuthenticated(Headers headers, APIResource resource, Parameters params) {
+                public boolean isAuthenticated(RequestHeaders headers, APIResource resource, Parameters params) {
                     return this.getServer().isAuthenticated(headers, resource, params, retVal);
                 }
 

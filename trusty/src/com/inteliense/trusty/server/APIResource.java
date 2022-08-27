@@ -1,7 +1,6 @@
 package com.inteliense.trusty.server;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 
 public abstract class APIResource implements APIExecute {
 

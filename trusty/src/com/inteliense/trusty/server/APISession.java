@@ -43,11 +43,11 @@ public class APISession {
         return apiKeys;
     }
 
-    public LocalDateTime getLastRequest() {
+    public LocalDateTime getLastRequestDateTime() {
         return lastRequest;
     }
 
-    public LocalDateTime getStarted() {
+    public LocalDateTime getStartedDateTime() {
         return started;
     }
     public String getClientId() {

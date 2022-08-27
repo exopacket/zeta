@@ -14,10 +14,8 @@ public class APIResponse {
     private ContentType contentType;
     private LocalDateTime timestamp;
     private boolean isAsync = false;
-    private int pollPeriod = 700;
     private boolean isCompleted = false;
     private AsyncRequest asyncRequest;
-    private APIResponse redirectResponse;
 
     public APIResponse(ClientSession clientSession, String response, ResponseCode responseCode) {
 
@@ -37,15 +35,48 @@ public class APIResponse {
 
     public APIResponse(ClientSession clientSession, ResponseCode responseCode) {
 
-        this.clientSession = clientSession;
-        this.responseCode = responseCode;
+        if(responseCode == ResponseCode.REDIRECT_START) {
+
+            String sessionAuth = clientSession.getSession().getDynamicSessionAuth();
+            String timestamp = "" + LocalDateTime.now().toEpochSecond(ZoneOffset.UTC);
+            String value = sessionAuth + ";" + timestamp;
+            String apiKey = clientSession.getSession().getApiKeys().getKey();
+            String secretKey = clientSession.getSession().getApiKeys().getSecret();
+            String authValue = value + ";" + secretKey;
+
+            String staticResponseId = SHA.getHmac384(value, apiKey);
+            String initialRequestAuth = SHA.get384(SHA.getHmac384(authValue, apiKey));
+            int perMinute = clientSession.getClient().getServer().getConfig().getRequestsPerMinute();
+
+            asyncRequest =
+                    new AsyncRequest(
+                            clientSession, LocalDateTime.now(),
+                            staticResponseId, initialRequestAuth, perMinute);
+
+            this.clientSession = clientSession;
+            this.responseCode = ResponseCode.SUCCESSFUL;
+
+            JSONObject obj = new JSONObject();
+
+            obj.put("request_status", "redirect");
+            obj.put("response_id", staticResponseId);
+            obj.put("initial_auth", initialRequestAuth);
+            obj.put("poll_rate", asyncRequest.getPollRate());
+
+            this.response = JSON.getString(obj);
+
+        } else {
+
+            this.clientSession = clientSession;
+            this.responseCode = responseCode;
+
+        }
 
     }
 
     public void encrypt() throws Exception {
 
         JSONObject obj = new JSONObject();
-        String keySetId = clientSession.getSession().getKeySetId();
 
         String encrypted = RSA.encrypt(
                 response, clientSession
@@ -53,8 +84,7 @@ public class APIResponse {
                         .getClientPublicKey()
                         .getPublicKeyId());
 
-        obj.put("rsa_val", encrypted);
-        obj.put("key_set_id", keySetId);
+        obj.put("ciphertext", encrypted);
 
         setResponse(obj);
 
@@ -66,16 +96,6 @@ public class APIResponse {
 
     public void setContentType(ContentType type) {
         contentType = type;
-    }
-
-    public int getPollPeriod(boolean update) {
-        int period = pollPeriod;
-        if(update) nextPollPeriod();
-        return period;
-    }
-
-    private int nextPollPeriod() {
-        return (int) Math.round(pollPeriod * 1.5);
     }
 
     public LocalDateTime getTimestamp() {
@@ -109,64 +129,30 @@ public class APIResponse {
     public RemoteClient getClient() {
         return clientSession.getClient();
     }
-
     public APISession getApiSession() { return clientSession.getSession(); }
-
     public void setResponse(String response) {
         this.response = response;
     }
     public void setResponse(JSONObject obj) throws Exception {
         this.response = JSON.getString(obj);
     }
-
     public String getResponse() {
         return response;
     }
-
-    public APIResponse getRedirectResponse() {
-        return redirectResponse;
-    }
-
     public AsyncRequest getAsyncRequest() {
         return asyncRequest;
     }
 
-    public class AsyncRequest {
+    public static APIResponse getContinue(ClientSession clientSession, String requestId, String dynamicAuth, int pollRate) {
 
-        private LocalDateTime lastTimestamp;
-        private String staticRequestId;
-        private String dynamicRequestAuth;
+        JSONObject obj = new JSONObject();
 
-        private APIResponse response;
+        obj.put("request_status", "redirect");
+        obj.put("response_id", requestId);
+        obj.put("next_auth", dynamicAuth);
+        obj.put("poll_rate", pollRate);
 
-        public AsyncRequest(LocalDateTime lastTimestamp, String staticRequestId) throws APIException {
-
-            this.lastTimestamp = lastTimestamp;
-            this.staticRequestId = staticRequestId;
-            this.dynamicRequestAuth = getDynamicRequestAuth();
-
-        }
-
-        public String getDynamicRequestAuth() {
-            return dynamicRequestAuth;
-        }
-
-        public String getRequestId() {
-            return staticRequestId;
-        }
-
-        public boolean requestAuthVerifies(String received) {
-            String hmac = SHA.getHmac384(getDynamicRequestAuth(),
-                    EncodingUtils.fromHex(clientSession.getSession().getRandomBytes()));
-            boolean res = hmac.equals(received);
-            if(res)
-                this.dynamicRequestAuth = SHA.get384(hmac);
-            return res;
-        }
-
-        public void requestComplete(APIResponse response) {
-            this.response = response;
-        }
+        return new APIResponse(clientSession, obj, ResponseCode.REDIRECT_CONTINUE);
 
     }
 

@@ -2,7 +2,6 @@ package com.inteliense.trusty.server;
 
 import com.inteliense.trusty.utils.EncodingUtils;
 import com.inteliense.trusty.utils.RSA;
-import com.inteliense.trusty.utils.Random;
 import com.inteliense.trusty.utils.SHA;
 
 import java.security.KeyPair;

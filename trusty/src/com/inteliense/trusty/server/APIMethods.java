@@ -7,7 +7,7 @@ import java.security.KeyPair;
 import java.util.HashMap;
 
 public interface APIMethods {
-    boolean isAuthenticated(Headers headers, APIResource resource, Parameters params, ClientSession clientSession);
+    boolean isAuthenticated(RequestHeaders headers, APIResource resource, Parameters params, ClientSession clientSession);
     boolean inTimeout(ClientSession clientSession, int perMinute);
     boolean inBlacklist(ClientSession clientSession);
     APIKeyPair lookupApiKey(String apiKey);
