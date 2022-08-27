@@ -50,7 +50,7 @@ public class RSA {
         try {
 
             KeyPairGenerator gen = KeyPairGenerator.getInstance("RSA");
-            gen.initialize(4096);
+            gen.initialize(2048);
             return gen.generateKeyPair();
 
         } catch (Exception ex) {
