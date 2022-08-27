@@ -2,6 +2,7 @@ package com.inteliense.trusty.utils;
 
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
+import java.util.regex.Pattern;
 
 public class EncodingUtils {
 
@@ -54,6 +55,41 @@ public class EncodingUtils {
     public static String hexToBase64(String hex) {
         byte[] bites = fromHex(hex);
         return getBase64(bites);
+    }
+
+    public static String[] splitStr(String input, char delimiter) {
+        return splitStr(input, "" + delimiter);
+    }
+
+    public static String[] splitStr(String input, String delimiter) {
+        //automatic regex search / conversion
+        if(delimiter.equals("")) return null;
+        String reserved = ".;$;|;(;);[;{;^;?;*;+;\\";
+        String[] reservedArr = reserved.split(";");
+        int c = 0;for(int i=0; i<reservedArr.length; i++) {
+            char rCh = reservedArr[i].charAt(0);
+            for(int x=0; x<delimiter.length(); x++) {
+                char ch = delimiter.charAt(x);
+                if(ch == rCh) c++;
+                if(c > 1) break;
+            }
+            if(c > 1) break;
+        }
+        if(c > 1 || (delimiter.length() > 1 && c == 1)) {
+            return splitStr(input, Pattern.compile(delimiter));
+        }
+        if(delimiter.length() == 1 && c == 1) {
+            String _intellijFix = "$";
+            _intellijFix = delimiter;
+            String pattern = "\\" + _intellijFix;
+            return input.split(pattern);
+        } else {
+            return input.split(delimiter);
+        }
+    }
+
+    public static String[] splitStr(String input, Pattern regex) {
+        return regex.split(input);
     }
 
 }
