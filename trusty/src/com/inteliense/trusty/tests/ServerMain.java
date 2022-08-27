@@ -1,9 +1,7 @@
 package com.inteliense.trusty.tests;
 
 import com.inteliense.trusty.server.*;
-
-import java.security.KeyPair;
-import java.util.HashMap;
+import com.sun.net.httpserver.Headers;
 
 public class ServerMain {
 
@@ -16,6 +14,7 @@ public class ServerMain {
         config.setRateLimit(25);
 
         API api = new API(config) {
+
             @Override
             public APIKeyPair lookupApiKey(String apiKey) {
                 return null;
@@ -26,7 +25,7 @@ public class ServerMain {
 
         api.addResource("accounts/login", new String[]{"username", "password"}, new APIResource() {
             @Override
-            public APIResponse execute(ClientSession clientSession, Parameters params) {
+            public APIResponse execute(ClientSession clientSession, Parameters params, RequestHeaders headers) {
 
                 //PROCESS accounts/login REQUEST
 
