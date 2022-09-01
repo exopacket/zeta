@@ -42,6 +42,7 @@ public abstract class API implements APIMethods {
             public boolean lookupUserInfo(ClientSession clientSession) {
                 return API.this.lookupUserInfo(clientSession);
             }
+
             @Override
             public APIKeyPair lookupApiKeys(String apiKey) {
                 return API.this.lookupApiKey(apiKey);

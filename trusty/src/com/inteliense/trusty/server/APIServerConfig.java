@@ -2,53 +2,150 @@ package com.inteliense.trusty.server;
 
 import java.net.InetSocketAddress;
 
-public class APIServerConfig {
+public final class APIServerConfig {
 
     private int apiPort;
-    private int responsePort;
+    private int responsePort = 8080;
     private int requestsPerMinute = 60;
-    private String bindAddress;
+    private String bindAddress = "";
     private APIServerType serverType = APIServerType.REST;
 
     private APIServerType serverResponseType = APIServerType.REST_SYNC;
-    private String apiServerKeyPassword;
-    private String responseServerKeyPassword;
-    private String apiServerKeystorePath;
-    private String responseServerKeystorePath;
-    private String apiPath = "/";
-    private String responseServerPath = "/";
+    private String apiServerKeyPassword = null;
+    private String responseServerKeyPassword = null;
+    private String apiServerKeystorePath = null;
+    private String responseServerKeystorePath = null;
+    private String apiPath = "/api";
+    private String responseServerPath = "/response";
     private int maxSessions = 0;
     private int minutesTillInvalid = 30;
     private boolean useDynamicApiKey = false;
     private CORSPolicy corsPolicy;
-    private String[] zeroTrustSessionPaths = new String[]{".", ".", "."};
+    private String[] zeroTrustSessionPaths = new String[]{"session/init", "session/keys", "session/close"};
 
     public APIServerConfig(int port) {
         this.apiPort = port;
         this.bindAddress = "";
+        this.corsPolicy = new CORSPolicy(false);
     }
 
     public APIServerConfig(String bindAddress, int port) {
         this.bindAddress = bindAddress;
         this.apiPort = port;
+        this.corsPolicy = new CORSPolicy(false);
     }
 
     public APIServerConfig(int port, String serverPath) {
         this.apiPort = port;
         this.bindAddress = "";
         setApiPath(serverPath);
+        this.corsPolicy = new CORSPolicy(false);
+
     }
 
     public APIServerConfig(String bindAddress, int port, String serverPath) {
         this.bindAddress = bindAddress;
         this.apiPort = port;
         setApiPath(serverPath);
+        this.corsPolicy = new CORSPolicy(false);
     }
 
-    public void setSessionResourcePaths(String sessionInitPath, String sessionKeyTransferPath, String sessionClosePath) {
+    public APIServerConfig useDynamicApiKey(boolean val) {
+        useDynamicApiKey = val;
+        return this;
+    }
+
+    public APIServerConfig setSessionResourcePaths(String sessionInitPath, String sessionKeyTransferPath, String sessionClosePath) {
         zeroTrustSessionPaths[0] = sessionInitPath;
         zeroTrustSessionPaths[1] = sessionKeyTransferPath;
         zeroTrustSessionPaths[2] = sessionClosePath;
+        return this;
+    }
+
+    public APIServerConfig setResponsePort(int port) {
+
+        responsePort = port;
+        return this;
+
+    }
+    public APIServerConfig setResponseServerPath(String responseServerPath) {
+        this.responseServerPath = responseServerPath;
+        return this;
+    }
+
+    public APIServerConfig setServerResponseType(APIServerType serverResponseType) {
+        this.serverResponseType = serverResponseType;
+        return this;
+    }
+
+    public APIServerConfig setRequestsPerMinute(int requestsPerMinute) {
+
+        this.requestsPerMinute = requestsPerMinute;
+        return this;
+
+    }
+
+    public APIServerConfig setResponseServerKeyPassword(String keyPassword) {
+        this.responseServerKeyPassword = keyPassword;
+        return this;
+    }
+
+    public APIServerConfig setApiServerKeyPassword(String keyPassword) {
+
+        this.apiServerKeyPassword = keyPassword;
+        return this;
+
+    }
+
+    public APIServerConfig setServerType(APIServerType serverType) {
+        this.serverType = serverType;
+        return this;
+    }
+
+    public APIServerConfig setRateLimit(int requestsPerSecond) {
+
+        this.requestsPerMinute = requestsPerSecond;
+        return this;
+
+    }
+
+    public APIServerConfig setMinutesTillInvalid(int minutesTillInvalid) {
+
+        this.minutesTillInvalid = minutesTillInvalid;
+        return this;
+
+    }
+
+    public APIServerConfig setCorsPolicy(CORSPolicy policy) {
+        corsPolicy = policy;
+        return this;
+    }
+
+    public APIServerConfig setApiPath(String apiPath) {
+
+        if (apiPath.charAt(apiPath.length() - 1) == '/') {
+            this.apiPath = apiPath.substring(0, apiPath.length() - 1);
+        } else {
+            this.apiPath = apiPath;
+        }
+
+        return this;
+
+    }
+
+    public APIServerConfig setApiServerKeystorePath(String keystorePath) {
+        this.apiServerKeystorePath = keystorePath;
+        return this;
+    }
+
+    public APIServerConfig setResponseServerKeystorePath(String keystorePath) {
+        this.responseServerKeystorePath = keystorePath;
+        return this;
+    }
+
+    public APIServerConfig setMaxSessions(int val) {
+        this.maxSessions = val;
+        return this;
     }
 
     public String[] getZeroTrustSessionPaths() {
@@ -75,20 +172,12 @@ public class APIServerConfig {
 
     }
 
-    public void useDynamicApiKey(boolean val) {
-        useDynamicApiKey = val;
-    }
-
     public boolean useDynamicApiKey() {
         return useDynamicApiKey;
     }
 
     public int getMinutesTillInvalid() {
         return minutesTillInvalid;
-    }
-
-    public void setMinutesTillInvalid(int minutesTillInvalid) {
-        this.minutesTillInvalid = minutesTillInvalid;
     }
 
     public String getResponseServerKeyPassword() {
@@ -99,10 +188,6 @@ public class APIServerConfig {
 
     public CORSPolicy getCorsPolicy() {
         return this.corsPolicy;
-    }
-
-    public void setCorsPolicy(CORSPolicy policy) {
-        corsPolicy = policy;
     }
 
     public int getApiPort() {
@@ -126,64 +211,12 @@ public class APIServerConfig {
         return requestsPerMinute;
     }
 
-    public void setApiServerKeystorePath(String keystorePath) {
-        this.apiServerKeystorePath = keystorePath;
-    }
-
-    public void setResponseServerKeystorePath(String keystorePath) {
-        this.responseServerKeystorePath = keystorePath;
-    }
-
-    public void setMaxSessions(int val) {
-        this.maxSessions = val;
-    }
-
     public int getMaxSessions() {
         return maxSessions;
     }
 
-    public void setApiPath(String apiPath) {
-
-        if (apiPath.charAt(apiPath.length() - 1) == '/') {
-            this.apiPath = apiPath.substring(0, apiPath.length() - 1);
-        } else {
-            this.apiPath = apiPath;
-        }
-    }
-
     public String getApiPath() {
         return this.apiPath;
-    }
-
-    public void setResponsePort(int port) {
-        responsePort = port;
-    }
-    public void setResponseServerPath(String responseServerPath) {
-        this.responseServerPath = responseServerPath;
-    }
-
-    public void setServerResponseType(APIServerType serverResponseType) {
-        this.serverResponseType = serverResponseType;
-    }
-
-    public void setRequestsPerMinute(int requestsPerMinute) {
-        this.requestsPerMinute = requestsPerMinute;
-    }
-
-    public void setResponseServerKeyPassword(String keyPassword) {
-        this.responseServerKeyPassword = keyPassword;
-    }
-
-    public void setApiServerKeyPassword(String keyPassword) {
-        this.apiServerKeyPassword = keyPassword;
-    }
-
-    public void setServerType(APIServerType serverType) {
-        this.serverType = serverType;
-    }
-
-    public void setRateLimit(int requestsPerSecond) {
-        this.requestsPerMinute = requestsPerSecond;
     }
 
     public APIServerType getServerType() {

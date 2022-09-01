@@ -44,7 +44,6 @@ public abstract class APIServer implements ClientFilter {
     //<-----    		AES-CBC(input: server_created_secret_key, key: first_32_bytes_client_random, iv: secure_random)
     //AUTHORIZATION= 	SUMMATION OF THE TWO 64 bytes
 
-
     private APIServerConfig config;
     private APIResponseServer responseServer;
     private APIResources resources = new APIResources();
@@ -352,6 +351,15 @@ public abstract class APIServer implements ClientFilter {
         }
 
     }
+
+    private boolean isBefore(LocalDateTime input, int secondsFromNow) {
+        LocalDateTime limit = LocalDateTime.now().plusSeconds(secondsFromNow);
+        return input.isBefore(limit);
+    }
+    private boolean isAfter(LocalDateTime input, int secondsFromNow) {
+        LocalDateTime limit = LocalDateTime.now().minusSeconds(secondsFromNow);
+        return input.isAfter(limit);
+    }
     private class APIServerHandler implements HttpHandler {
 
         @Override
@@ -396,6 +404,14 @@ public abstract class APIServer implements ClientFilter {
             }
 
             if(!checkRequestHeaders(headers)) {
+                unauthorized(t);
+                return;
+            }
+
+            if(
+                    !isAfter(headers.getDateTimeFromTimestamp("X-Request-Timestamp"), 30) ||
+                    !isBefore(headers.getDateTimeFromTimestamp("X-Request-Timestamp"), 30)
+            ) {
                 unauthorized(t);
                 return;
             }

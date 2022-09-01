@@ -3,6 +3,8 @@ package com.inteliense.trusty.server;
 import com.inteliense.trusty.utils.EncodingUtils;
 import com.sun.net.httpserver.Headers;
 
+import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -72,6 +74,14 @@ public class RequestHeaders {
 
     public String[] getArr(String key, String delimiter) {
         return EncodingUtils.splitStr(values.get(key), delimiter);
+    }
+
+    public LocalDateTime getDateTimeFromTimestamp(String key) {
+
+        return LocalDateTime.ofEpochSecond(
+                Long.valueOf(values.get(key)), 0, ZoneOffset.UTC
+        );
+
     }
 
 }

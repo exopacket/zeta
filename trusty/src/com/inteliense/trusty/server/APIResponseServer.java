@@ -9,6 +9,7 @@ import java.io.*;
 import java.net.URI;
 import java.security.*;
 import java.security.cert.CertificateException;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.HashMap;
 
@@ -212,6 +213,15 @@ public class APIResponseServer {
 
     }
 
+    private boolean isBefore(LocalDateTime input, int secondsFromNow) {
+        LocalDateTime limit = LocalDateTime.now().plusSeconds(secondsFromNow);
+        return input.isBefore(limit);
+    }
+    private boolean isAfter(LocalDateTime input, int secondsFromNow) {
+        LocalDateTime limit = LocalDateTime.now().minusSeconds(secondsFromNow);
+        return input.isAfter(limit);
+    }
+
     private class APIServerHandler implements HttpHandler {
 
         @Override
@@ -256,6 +266,14 @@ public class APIResponseServer {
             }
 
             if(!checkRequestHeaders(headers)) {
+                unauthorized(t);
+                return;
+            }
+
+            if(
+                    !isAfter(headers.getDateTimeFromTimestamp("X-Request-Timestamp"), 30) ||
+                            !isBefore(headers.getDateTimeFromTimestamp("X-Request-Timestamp"), 30)
+            ) {
                 unauthorized(t);
                 return;
             }
