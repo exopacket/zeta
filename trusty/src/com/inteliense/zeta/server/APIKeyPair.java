@@ -1,9 +1,9 @@
-package com.inteliense.trusty.server;
+package com.inteliense.zeta.server;
 
-import com.inteliense.trusty.utils.AES;
-import com.inteliense.trusty.utils.EncodingUtils;
-import com.inteliense.trusty.utils.Random;
-import com.inteliense.trusty.utils.SHA;
+import com.inteliense.zeta.utils.AES;
+import com.inteliense.zeta.utils.EncodingUtils;
+import com.inteliense.zeta.utils.Random;
+import com.inteliense.zeta.utils.SHA;
 
 public class APIKeyPair {
 

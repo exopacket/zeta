@@ -1,7 +1,6 @@
-package com.inteliense.trusty.client;
+package com.inteliense.zeta.client;
 
-import com.inteliense.trusty.server.*;
-import com.inteliense.trusty.server.APIException;
+import com.inteliense.zeta.server.APIException;
 
 public class APIClient {
 

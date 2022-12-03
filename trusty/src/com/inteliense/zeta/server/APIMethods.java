@@ -1,9 +1,5 @@
-package com.inteliense.trusty.server;
+package com.inteliense.zeta.server;
 
-import com.sun.net.httpserver.Headers;
-import org.json.simple.JSONObject;
-
-import java.security.KeyPair;
 import java.util.HashMap;
 
 public interface APIMethods {

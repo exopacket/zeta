@@ -1,4 +1,4 @@
-package com.inteliense.trusty.server;
+package com.inteliense.zeta.server;
 
 import java.util.ArrayList;
 import java.util.HashMap;

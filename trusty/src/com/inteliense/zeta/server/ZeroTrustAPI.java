@@ -1,4 +1,4 @@
-package com.inteliense.trusty.server;
+package com.inteliense.zeta.server;
 
 public class ZeroTrustAPI extends API {
     public ZeroTrustAPI(APIServerConfig config) throws APIException {

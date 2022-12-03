@@ -1,4 +1,4 @@
-package com.inteliense.trusty.utils;
+package com.inteliense.zeta.utils;
 
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;

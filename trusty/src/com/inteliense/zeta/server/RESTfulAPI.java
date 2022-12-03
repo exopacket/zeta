@@ -1,4 +1,4 @@
-package com.inteliense.trusty.server;
+package com.inteliense.zeta.server;
 
 public class RESTfulAPI extends API {
 

@@ -1,4 +1,4 @@
-package com.inteliense.trusty.server;
+package com.inteliense.zeta.server;
 
 public enum ResponseCode {
     REQUEST_FAILED,

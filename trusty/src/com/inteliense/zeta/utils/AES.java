@@ -1,4 +1,4 @@
-package com.inteliense.trusty.utils;
+package com.inteliense.zeta.utils;
 
 import javax.crypto.Cipher;
 import javax.crypto.spec.GCMParameterSpec;

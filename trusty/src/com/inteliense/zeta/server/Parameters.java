@@ -1,6 +1,6 @@
-package com.inteliense.trusty.server;
+package com.inteliense.zeta.server;
 
-import com.inteliense.trusty.utils.EncodingUtils;
+import com.inteliense.zeta.utils.EncodingUtils;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 

@@ -1,6 +1,4 @@
-package com.inteliense.trusty.server;
-
-import com.sun.net.httpserver.Headers;
+package com.inteliense.zeta.server;
 
 public class ClientSession {
 

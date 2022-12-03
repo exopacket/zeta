@@ -1,8 +1,8 @@
-package com.inteliense.trusty.server;
+package com.inteliense.zeta.server;
 
-import com.inteliense.trusty.utils.EncodingUtils;
-import com.inteliense.trusty.utils.RSA;
-import com.inteliense.trusty.utils.SHA;
+import com.inteliense.zeta.utils.EncodingUtils;
+import com.inteliense.zeta.utils.RSA;
+import com.inteliense.zeta.utils.SHA;
 
 import java.security.KeyPair;
 import java.security.PrivateKey;

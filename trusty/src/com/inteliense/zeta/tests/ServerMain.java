@@ -1,7 +1,6 @@
-package com.inteliense.trusty.tests;
+package com.inteliense.zeta.tests;
 
-import com.inteliense.trusty.server.*;
-import com.sun.net.httpserver.Headers;
+import com.inteliense.zeta.server.*;
 import org.json.simple.JSONObject;
 
 public class ServerMain {

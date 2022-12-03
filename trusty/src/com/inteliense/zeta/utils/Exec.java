@@ -1,10 +1,9 @@
-package com.inteliense.trusty.utils;
+package com.inteliense.zeta.utils;
 
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStreamReader;
-import java.net.URISyntaxException;
 
 public class Exec {
 

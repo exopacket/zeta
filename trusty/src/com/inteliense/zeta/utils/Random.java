@@ -1,4 +1,4 @@
-package com.inteliense.trusty.utils;
+package com.inteliense.zeta.utils;
 
 import javax.crypto.spec.IvParameterSpec;
 import java.security.SecureRandom;

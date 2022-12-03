@@ -1,6 +1,6 @@
-package com.inteliense.trusty.server;
+package com.inteliense.zeta.server;
 
-import com.inteliense.trusty.utils.JSON;
+import com.inteliense.zeta.utils.JSON;
 import com.sun.net.httpserver.*;
 import org.json.simple.JSONObject;
 

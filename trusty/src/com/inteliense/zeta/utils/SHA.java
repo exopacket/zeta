@@ -1,4 +1,4 @@
-package com.inteliense.trusty.utils;
+package com.inteliense.zeta.utils;
 
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;

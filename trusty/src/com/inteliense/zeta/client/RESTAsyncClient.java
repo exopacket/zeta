@@ -1,4 +1,4 @@
-package com.inteliense.trusty.client;
+package com.inteliense.zeta.client;
 
 public class RESTAsyncClient {
 }
