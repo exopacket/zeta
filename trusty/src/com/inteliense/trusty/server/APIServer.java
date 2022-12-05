@@ -25,7 +25,7 @@ public abstract class APIServer implements ClientFilter {
     //                  SESSION INITIALIZATION REQUEST
     //----->            CLIENT SECURE RANDOM (48 BYTES)
     //----->    	 	HMAC512(input: original_secret_key, key: api_key)
-    //----->    	 	AES-GCM(input: client_created_secret_key, key: first_32_bytes_client_random, iv: next_16_bytes_client_random)
+    //----->    	 	AES-CBC(input: client_created_secret_key, key: first_32_bytes_client_random, iv: next_16_bytes_client_random)
     //AUTHORIZATION= 	SUMMATION OF THE TWO 64 bytes
 
     //                  SESSION INITIALIZATION RESPONSE
