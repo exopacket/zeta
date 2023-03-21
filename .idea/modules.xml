@@ -2,7 +2,7 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
-      <module fileurl="file://$PROJECT_DIR$/trusty.iml" filepath="$PROJECT_DIR$/trusty.iml" />
+      <module fileurl="file://$PROJECT_DIR$/zeta.iml" filepath="$PROJECT_DIR$/zeta.iml" />
     </modules>
   </component>
 </project>
