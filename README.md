@@ -12,6 +12,3 @@ Session hijacking prevention is now completed with an optional configuration cha
   - asynchronous response with separate response server and removable API resources (paths)
   - dynamic request authorization for asynchronous responses
   - two way public key cryptography with two public keys and two private keys spread across the two devices (server & client). To get the full key pair both the server and client must be compromised.
-
-
-Documentation still to come!
