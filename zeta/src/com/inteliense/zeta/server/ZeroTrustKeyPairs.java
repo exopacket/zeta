@@ -17,10 +17,9 @@ public class ZeroTrustKeyPairs {
 
     private String keySetId;
 
-    public ZeroTrustKeyPairs(ClientSession clientSession) {
+    public ZeroTrustKeyPairs(String apiSecret) {
 
         KeyPair[] keyPairs = getKeyPairs();
-        String apiSecret = clientSession.getClient().getApiSecret();
         clientPublic = new AsymmetricKey(keyPairs[0].getPublic(), apiSecret);
         clientPrivate = new AsymmetricKey(keyPairs[0].getPrivate(), apiSecret);
         serverPublic = new AsymmetricKey(keyPairs[1].getPublic(), apiSecret);

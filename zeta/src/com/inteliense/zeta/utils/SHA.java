@@ -180,10 +180,11 @@ public class SHA {
         try {
 
             Mac sha384_HMAC = Mac.getInstance("HmacSHA384");
-            SecretKeySpec secret_key = new SecretKeySpec(EncodingUtils.fromHex(key), "HmacSHA384");
+            SecretKeySpec secret_key = new SecretKeySpec(key.getBytes("UTF-8"), "HmacSHA384");
             sha384_HMAC.init(secret_key);
 
-            return EncodingUtils.getHex(sha384_HMAC.doFinal(input.getBytes("UTF-8"))).toLowerCase();
+            String test = EncodingUtils.getHex(sha384_HMAC.doFinal(input.getBytes("UTF-8"))).toLowerCase();
+            return test;
 
         } catch (Exception ex) {
 

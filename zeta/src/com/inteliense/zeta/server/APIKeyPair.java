@@ -77,14 +77,12 @@ public class APIKeyPair {
 
         byte[] receivedCipherText = EncodingUtils.fromHex(received);
         byte[] receivedIv = EncodingUtils.fromHex(iv);
-        byte[] calculatedHash = EncodingUtils.fromHex(SHA.getHmac512(sentSecret, key));
+        byte[] calculatedHash = EncodingUtils.fromHex(SHA.getHmac512(outboundSecret, key));
         byte[] actualCipherText = subtractBytes(receivedCipherText, calculatedHash);
         byte[] decryptedSecretKeyBytes = AES.cbc(actualCipherText, random, receivedIv, false);
         String decryptedSecretKey = new String(decryptedSecretKeyBytes);
-        String secretKeyPrefix = (decryptedSecretKey.length() > 1) ? decryptedSecretKey.substring(0, 8) : "";
-        if(!secretKeyPrefix.equals("secret_")) {
-            return false;
-        }
+        String secretKeyPrefix = (decryptedSecretKey.length() > 1) ? decryptedSecretKey.substring(0, 7) : "";
+        if(!secretKeyPrefix.equals("secret_")) return false;
         String nextHash = SHA.getHmac512(decryptedSecretKey, key);
         String serverSecretKey = Random.str(56, "secret");
         byte[] newIv = Random.generateIv(128);

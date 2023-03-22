@@ -1,37 +1,20 @@
-package com.inteliense.zeta.server;
+package com.inteliense.zeta.client;
 
 import com.inteliense.zeta.utils.EncodingUtils;
-import com.sun.net.httpserver.Headers;
+import org.apache.http.Header;
 
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.util.HashMap;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Set;
-import java.util.Map.*;
 
-public class RequestHeaders {
+public class ResponseHeaders {
 
     private HashMap<String, String> values = new HashMap<String, String>();
 
-    public RequestHeaders(Headers headers) {
+    public ResponseHeaders(Header[] headers) {
 
-        Set<Entry<String, List<String>>> all = headers.entrySet();
-        Iterator<Entry<String, List<String>>> iterator = all.iterator();
-
-        while(iterator.hasNext()) {
-            Entry<String, List<String>> curr = iterator.next();
-            String key = curr.getKey();
-            String value = "";
-            List<String> values = curr.getValue();
-            for(int i=0; i<values.size(); i++) {
-                if(i==0)
-                    value += values.get(i);
-                else
-                    value += "," + values.get(i);
-            }
-            this.values.put(key.toUpperCase(), value);
+        for(Header header: headers) {
+            this.values.put(header.getName().toUpperCase(), header.getValue());
         }
 
     }

@@ -17,6 +17,7 @@ public abstract class RemoteClient {
         return apiKeys.getKey();
     }
     public String getApiSecret() { return apiKeys.getSecret(); }
+
     public APIServer getServer() {
         return this.server;
     }
@@ -32,8 +33,15 @@ public abstract class RemoteClient {
         return getApiKey().equals(apiKeys.getKey());
     }
 
-    public boolean equals(String remoteIp) {
-        return clientInfo.getRemoteIp().equals(this.clientInfo.getRemoteIp());
+    public boolean guessSame(RemoteClient client) {
+
+        String otherKey = client.getApiKey();
+        ClientInfo info = client.getClientInfo();
+        if(!this.apiKeys.getKey().equals(otherKey)) return false;
+        if(!info.getRemoteIp().equals(this.clientInfo.getRemoteIp())) return false;
+
+        return true;
+
     }
 
     public boolean isFlagged(RequestHeaders headers, String hostname) {

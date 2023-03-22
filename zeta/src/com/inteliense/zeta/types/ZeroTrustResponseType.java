@@ -1,6 +1,6 @@
-package com.inteliense.zeta.server;
+package com.inteliense.zeta.types;
 
-public enum ZeroTrustRequestType {
+public enum ZeroTrustResponseType {
 
     SESSION_INIT,
     KEY_TRANSFER,

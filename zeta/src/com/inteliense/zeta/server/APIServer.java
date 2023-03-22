@@ -1,5 +1,6 @@
 package com.inteliense.zeta.server;
 
+import com.inteliense.zeta.types.ZeroTrustRequestType;
 import com.inteliense.zeta.utils.EncodingUtils;
 import com.inteliense.zeta.utils.JSON;
 import com.inteliense.zeta.utils.RSA;
@@ -12,7 +13,6 @@ import java.io.*;
 import java.net.URI;
 import java.security.*;
 import java.security.cert.CertificateException;
-import java.security.cert.X509Certificate;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.util.ArrayList;
@@ -375,8 +375,6 @@ public abstract class APIServer implements ClientFilter {
         @Override
         public void handle(HttpExchange t) throws IOException {
 
-            System.out.println("HANDLE");
-
             final Headers headersObj = t.getRequestHeaders();
             final RequestHeaders headers = new RequestHeaders(headersObj);
             final String inboundRequestMethod = t.getRequestMethod().toUpperCase();
@@ -388,9 +386,6 @@ public abstract class APIServer implements ClientFilter {
             String[] leftParts = leftSide.split("/");
             String hostname = leftParts[0];
             String ipAddr = leftParts[1];
-
-            System.out.println("HANDLE 2");
-
 
             String resource = t.getRequestURI().getPath()
                     .replace(config.getApiPath() + "/","")
@@ -433,9 +428,18 @@ public abstract class APIServer implements ClientFilter {
 //                return;
 //            }
 
-            System.out.println(headers.getString("X-Api-Key"));
+
+            if(!headers.contains("X-Api-Key")) {
+                unauthorized(t);
+                return;
+            }
 
             APIKeyPair apiKeys = lookupApiKeys(headers.getString("X-Api-Key"));
+
+            if(apiKeys == null) {
+                unauthorized(t);
+                return;
+            }
 
             String reqBody = bodyFromStream(t.getRequestBody());
 
@@ -446,19 +450,12 @@ public abstract class APIServer implements ClientFilter {
                 }
             }
 
-            int clientIndex = -1;
-
-            if(headers.contains("X-Api-Session-Id")) {
-                clientIndex = findClient(headers.getString("X-Api-Session-Id"));
-            } else {
-                clientIndex = findClient(apiKeys);
-            }
+            int clientIndex = findClient(apiKeys);
 
             invalidateOldSessions();
 
             ClientSession clientSession = null;
             RemoteClient client = null;
-            boolean skipVerification = false;
 
             if(clientIndex < 0) {
 
@@ -469,6 +466,10 @@ public abstract class APIServer implements ClientFilter {
                     ));
 
                     client = clientSession.getClient();
+                    clients.add(client);
+                    clientSessions.add(clientSession);
+                    apiKeys = clientSession.getSession().getApiKeys();
+
 
                     if(!verifyApiAuthorization(headers, apiKeys, true)) {
                         invalidateSession(clientSession);
@@ -493,37 +494,7 @@ public abstract class APIServer implements ClientFilter {
 
                 } else {
 
-                    if (config.getZeroTrustSessionPaths()[0].equals(resource)) {
-
-                        try {
-
-                            APISession createdSession = new APISession(apiKeys, ipAddr,
-                                    config.getServerType(),
-                                    config.getMinutesTillInvalid(), true);
-
-                            clientSessionIndex = clientSessions.size();
-                            clientSessions.add(new ClientSession(new ClientInfo(
-                                    headers, remoteAddr, hostname
-                            ), client, createdSession));
-
-                            if(!verifyApiAuthorization(headers, apiKeys, true)) {
-                                invalidateSession(clientSession);
-                                unauthorized(t);
-                                return;
-                            }
-
-                            skipVerification = true;
-
-                        } catch (APIException e) {
-                            serverError(t);
-                            return;
-                        }
-
-                    } else {
-
-                        clientSessionIndex = findClientSession(client, apiKeys);
-
-                    }
+                    clientSessionIndex = findClientSession(client, apiKeys);
 
                 }
 
@@ -534,14 +505,12 @@ public abstract class APIServer implements ClientFilter {
                     clientSession = clientSessions.get(clientSessionIndex);
                 }
 
-                if(!skipVerification) {
+                apiKeys = clientSession.getSession().getApiKeys();
 
-                    if (!verifyApiAuthorization(headers, apiKeys, true)) {
-                        invalidateSession(clientSession);
-                        unauthorized(t);
-                        return;
-                    }
-
+                if (!verifyApiAuthorization(headers, apiKeys, false)) {
+                    invalidateSession(clientSession);
+                    unauthorized(t);
+                    return;
                 }
 
                 if(!sessionAllowed(clientSession, apiKeys.getKey())) {
@@ -699,8 +668,6 @@ public abstract class APIServer implements ClientFilter {
 
             String urlPath = t.getRequestURI().getPath();
 
-            System.out.println(urlPath);
-
             String timestamp = headers.getString("X-Request-Timestamp");
             String apiKey = apiKeys.getKey();
             String apiAuthorization = (config.useDynamicApiKey()) ?
@@ -764,7 +731,7 @@ public abstract class APIServer implements ClientFilter {
 
                 RemoteClient current = clientSessions.get(i).getClient();
 
-                if(current.equals(client)) {
+                if(current.guessSame(client)) {
 
                     if(clientSessions.get(i).getSession().getSessionId().equals(sessionId))
                         return i;
@@ -801,18 +768,6 @@ public abstract class APIServer implements ClientFilter {
             for(int i=0; i<clients.size(); i++) {
                 RemoteClient curr = clients.get(i);
                 if(curr.equals(apiKeys))
-                    return i;
-            }
-
-            return -1;
-
-        }
-
-        private int findClient(String sessionId) {
-
-            for(int i=0; i<clients.size(); i++) {
-                RemoteClient curr = clients.get(i);
-                if(curr.equals(sessionId))
                     return i;
             }
 
