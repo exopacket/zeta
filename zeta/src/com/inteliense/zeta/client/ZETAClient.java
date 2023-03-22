@@ -75,12 +75,7 @@ public class ZETAClient {
         headers.put("X-Api-Random-Bytes", nextRandom);
         headers.put("X-Api-Key-Set-Id", keySetId);
 
-        System.out.println();
-        System.out.println(nextAuthorization + ":" + fixedPath + ":" + timestamp  + ":" + JSON.getString(body));
         String signature = SHA.getHmac384(nextAuthorization + ":" + fixedPath + ":" + timestamp  + ":" + JSON.getString(body), apiKey);
-        System.out.println();
-        System.out.println(signature);
-        System.out.println();
         headers.put("X-Request-Signature", signature);
         headers.put("X-Request-Timestamp", "" + Instant.now().getEpochSecond());
 
@@ -89,7 +84,11 @@ public class ZETAClient {
         if(response.getStatus() == 200) {
             if(response.isVerified()) {
                 setRequestVars(response);
-                return new JSONObject(); //response.getData();
+                if(response.decrypt()) {
+                    return response.getData();
+                } else {
+                    throw new APIException("The server could not verify authenticity of the request.");
+                }
             } else {
                 throw new APIException("The server could not verify authenticity of the request.");
             }
@@ -151,11 +150,7 @@ public class ZETAClient {
                 }
             }
 
-            System.out.println();
-            System.out.println();
-            System.out.println(responseStr);
-
-            return new ZETAResponse(response.getStatusLine().getStatusCode(), headers, new JSONObject(), this.apiKey, this.activeSecret, this.sessionRandom, ZeroTrustResponseType.values()[requestType.ordinal()]);
+            return new ZETAResponse(response.getStatusLine().getStatusCode(), headers, requestCiphertext(responseStr), this.clientPrivate, this.apiKey, this.activeSecret, this.sessionRandom, ZeroTrustResponseType.values()[requestType.ordinal()]);
 
         } catch (Exception e) {
             e.printStackTrace();
@@ -163,6 +158,12 @@ public class ZETAClient {
 
         return null;
 
+    }
+
+    private String requestCiphertext(String reqBody) {
+        int last = reqBody.length() - 1;
+        if(!(reqBody.charAt(0) == '{' && reqBody.charAt(last) == '}')) return null;
+        return reqBody.substring(1, last);
     }
 
     private ZETAResponse post(String path, HashMap<String, String> requestHeaders, ZeroTrustRequestType requestType) {
@@ -194,10 +195,6 @@ public class ZETAClient {
             }
 
             JSONObject data = JSON.getObject(responseStr);
-
-            System.out.println();
-            System.out.println();
-            System.out.println(responseStr);
 
             return new ZETAResponse(response.getStatusLine().getStatusCode(), headers, data, this.apiKey, this.activeSecret, this.sessionRandom, ZeroTrustResponseType.values()[requestType.ordinal()]);
 

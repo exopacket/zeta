@@ -243,8 +243,6 @@ public abstract class APIServer implements ClientFilter {
     public String requestCiphertext(String reqBody) {
         int last = reqBody.length() - 1;
         if(!(reqBody.charAt(0) == '{' && reqBody.charAt(last) == '}')) return null;
-        System.out.println(reqBody);
-        System.out.println(reqBody.substring(1, last));
         return reqBody.substring(1, last);
     }
 
@@ -702,10 +700,6 @@ public abstract class APIServer implements ClientFilter {
 
             String value = apiAuthorization + ":" + fixPath(urlPath) + ":" + timestamp + ":" + body;
             String sig = SHA.getHmac384(value, apiKey);
-
-            System.out.println();
-            System.out.println(value);
-            System.out.println();
 
             String sigReceived = headers.getString("X-Request-Signature");
 

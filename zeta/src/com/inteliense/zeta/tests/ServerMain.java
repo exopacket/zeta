@@ -10,12 +10,6 @@ public class ServerMain {
 
     public static void main(String[] args) throws APIException {
 
-        KeyPair kp = RSA.generateKeyPair();
-        String text = "Hello World";
-        String res = RSA.encrypt(text, kp.getPublic());
-        System.out.println(RSA.decrypt(res, kp.getPrivate()));
-        System.exit(0);
-
         APIServerConfig config = new APIServerConfig("127.0.0.1", 8181, "/api");
         config.setApiServerKeyPassword("password");
         config.setApiServerKeystorePath("/home/ryan/testkey.jks");
@@ -53,17 +47,9 @@ public class ServerMain {
         api.addResource("query/new", new String[]{"sql", "parameters"}, new APIResource() {
             @Override
             public APIResponse execute(ClientSession clientSession, Parameters params, RequestHeaders headers) {
-
-                if(params.getString("sql").equals("SQL") && params.getString("parameters").equals("PARAMS")) {
-
-                    JSONObject obj = new JSONObject();
-                    obj.put("response", "RESPONSE");
-
-                    return new APIResponse(clientSession, obj, ResponseCode.SUCCESSFUL);
-
-                }
-
-                return new APIResponse(clientSession, "fSDFASDF", ResponseCode.REQUEST_FAILED);
+                JSONObject obj = new JSONObject();
+                obj.put("response", "RESPONSE");
+                return new APIResponse(clientSession, obj, ResponseCode.SUCCESSFUL);
             }
 
         });

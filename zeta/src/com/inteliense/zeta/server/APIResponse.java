@@ -76,17 +76,13 @@ public class APIResponse {
 
     public void encrypt() throws Exception {
 
-        JSONObject obj = new JSONObject();
-
         String encrypted = RSA.encrypt(
                 response, clientSession
                         .getSession()
                         .getClientPublicKey()
-                        .getPublicKeyId());
+                        .getPublicKey());
 
-        obj.put("ciphertext", encrypted);
-
-        setResponse(obj);
+        setResponse("{" + encrypted + "}");
 
     }
 

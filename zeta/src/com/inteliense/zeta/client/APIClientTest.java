@@ -11,7 +11,8 @@ public class APIClientTest {
         JSONObject testData = new JSONObject();
         testData.put("sql", "FIX ME");
         testData.put("parameters", "WITH CODE");
-        client.request("query/new", testData);
+        JSONObject response = client.request("query/new", testData);
+        System.out.println(response.get("response"));
 
     }
 
