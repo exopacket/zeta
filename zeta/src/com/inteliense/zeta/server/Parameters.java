@@ -1,19 +1,66 @@
 package com.inteliense.zeta.server;
 
 import com.inteliense.zeta.utils.EncodingUtils;
+import com.inteliense.zeta.utils.JSON;
+import com.inteliense.zeta.utils.RSA;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 
+import java.security.PrivateKey;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
+import java.util.ArrayList;
 import java.util.HashMap;
 
 public class Parameters {
 
-    HashMap<String, String> values;
+    HashMap<String, String> values = new HashMap<String, String>();
+    ArrayList<String> expected = new ArrayList<String>();
+    String encryptedPayload = null;
+
+    public Parameters(HashMap<String, String> values, ArrayList<String> expected) {
+        this.values = values;
+        this.expected = expected;
+    }
+
+    public Parameters(String ciphertext, ArrayList<String> expected) {
+        this.encryptedPayload = ciphertext;
+        this.expected = expected;
+    }
 
     public Parameters(HashMap<String, String> values) {
         this.values = values;
+    }
+
+    public Parameters(String ciphertext) {
+        this.encryptedPayload = ciphertext;
+    }
+
+    public boolean checkAllPresent() {
+
+        for (String param : expected) {
+            if(!values.containsKey(param)) return false;
+        }
+
+        return true;
+
+    }
+
+    public String json() {
+        JSONObject obj = (JSONObject) this.values;
+        return JSON.getString(obj);
+    }
+
+    public boolean decrypt(ClientSession session) {
+        PrivateKey key = session.getSession().getServerPrivateKey().getPrivateKey();
+        String json = RSA.decrypt(encryptedPayload, key);
+
+        if(JSON.verify(json).equals("false")) return false;
+
+        JSONObject obj = JSON.getObject(json);
+        values = obj;
+
+        return true;
     }
 
     public JSONObject getJsonObj(String key) {

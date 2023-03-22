@@ -9,6 +9,11 @@ public abstract class APIResource implements APIExecute {
     private String value = "";
     private boolean isAsync = false;
 
+    public APIResource() {}
+    public APIResource(String requestMethod) {
+        this.requestMethod = requestMethod;
+    }
+
     public void setParameters(String[] parameters) {
         for(int i=0; i<parameters.length; i++) {
             this.parameters.add(parameters[i]);
