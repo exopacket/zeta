@@ -6,5 +6,6 @@ public enum ContentType {
     XML,
     JSON,
     UNKNOWN,
+    CIPHERTEXT,
     UNSET
 }

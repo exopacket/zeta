@@ -110,8 +110,8 @@ public abstract class API implements APIMethods {
             String apiKey = headers.getString("X-Api-Key");
             String sessionId = headers.getString("X-Api-Session-Id");
             String keySetId = headers.getString("X-Api-Key-Set-Id");
-            String userId = headers.getString("X-Api-User-Id");
-            String clientId = headers.getString("X-Api-Client-Id");
+            //String userId = headers.getString("X-Api-User-Id");
+            //String clientId = headers.getString("X-Api-Client-Id");
             String sessionAuth = headers.getString("X-Api-Session-Authorization");
 
             boolean flag = false;
@@ -124,12 +124,12 @@ public abstract class API implements APIMethods {
 
             if(!keySetId.equals(clientSession.getSession().getKeySetId()))
                 flag = true;
-
-            if(!userId.equals(clientSession.getSession().getUserId()))
-                flag = true;
-
-            if(!clientId.equals(clientSession.getSession().getClientId()))
-                flag = true;
+//
+//            if(!userId.equals(clientSession.getSession().getUserId()))
+//                flag = true;
+//
+//            if(!clientId.equals(clientSession.getSession().getClientId()))
+//                flag = true;
 
             if(!clientSession.getSession().checkDynamicSessionAuth(sessionAuth))
                 flag = true;

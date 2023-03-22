@@ -1,11 +1,20 @@
 package com.inteliense.zeta.tests;
 
 import com.inteliense.zeta.server.*;
+import com.inteliense.zeta.utils.RSA;
 import org.json.simple.JSONObject;
+
+import java.security.KeyPair;
 
 public class ServerMain {
 
     public static void main(String[] args) throws APIException {
+
+        KeyPair kp = RSA.generateKeyPair();
+        String text = "Hello World";
+        String res = RSA.encrypt(text, kp.getPublic());
+        System.out.println(RSA.decrypt(res, kp.getPrivate()));
+        System.exit(0);
 
         APIServerConfig config = new APIServerConfig("127.0.0.1", 8181, "/api");
         config.setApiServerKeyPassword("password");

@@ -87,7 +87,7 @@ public class APISession {
     }
 
     public boolean checkDynamicSessionAuth(String received) {
-        String hmac = SHA.getHmac384(getDynamicSessionAuth(), randomBytes);
+        String hmac = SHA.getHmac384(getDynamicSessionAuth(), sessionId);
         boolean res = hmac.equals(received);
         if(res)
             this.sessionAuth = SHA.get384(hmac);

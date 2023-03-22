@@ -385,8 +385,12 @@ public class AES {
 
             Cipher cipher = Cipher.getInstance("AES/GCM/NoPadding");
             SecretKeySpec keySpec = new SecretKeySpec(key, "AES");
-            GCMParameterSpec gcmParameterSpec = new GCMParameterSpec(128, iv);
-            cipher.init((encrypt) ? Cipher.ENCRYPT_MODE : Cipher.DECRYPT_MODE, keySpec, gcmParameterSpec);
+            if(iv != null) {
+                GCMParameterSpec gcmParameterSpec = new GCMParameterSpec(128, iv);
+                cipher.init((encrypt) ? Cipher.ENCRYPT_MODE : Cipher.DECRYPT_MODE, keySpec, gcmParameterSpec);
+            } else {
+                cipher.init((encrypt) ? Cipher.ENCRYPT_MODE : Cipher.DECRYPT_MODE, keySpec);
+            }
             if (aad != null) {
                 cipher.updateAAD(aad);
             }

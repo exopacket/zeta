@@ -41,8 +41,8 @@ public class ZETAResponse {
         return headers.getString("X-Api-Session-Authorization");
     }
 
-    public String nextSessionAuthorization() {
-        return SHA.getHmac384(sessionAuthorization(), EncodingUtils.fromHex(random()));
+    public String nextSessionAuthorization(String sessionId) {
+        return SHA.getHmac384(sessionAuthorization(), sessionId);
     }
 
     public String authorization() {
@@ -63,9 +63,6 @@ public class ZETAResponse {
 
     public String currentSecretKey() {
         return this.currentSecretKey;
-    }
-    public String random() {
-        return headers.getString("X-Api-Random-Bytes");
     }
 
     private boolean verify(String apiKey, String secretKey, String random) {
