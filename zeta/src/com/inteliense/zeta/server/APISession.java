@@ -36,6 +36,7 @@ public class APISession {
             this.sessionId = createSessionId(ipAddr);
             this.randomBytes = Random.secure(96);
             this.sessionAuth = createInitialSessionAuth();
+            this.zeroTrustKeyPairs = new ZeroTrustKeyPairs(this.getApiKeys().getSecret());
         }
 
     }
@@ -166,5 +167,6 @@ public class APISession {
         return SHA.getHmac384(sessionId, randomBytes);
 
     }
+
 
 }

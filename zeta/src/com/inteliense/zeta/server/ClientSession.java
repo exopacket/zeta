@@ -25,6 +25,7 @@ public class ClientSession {
                     server.getConfig().getMinutesTillInvalid(), isZeroTrust
             );
             ClientSession retVal = new ClientSession(clientInfo, session);
+
             RemoteClient client = new RemoteClient(apiKeys, server) {
                 @Override
                 public boolean isLimited(int perMinute) {
