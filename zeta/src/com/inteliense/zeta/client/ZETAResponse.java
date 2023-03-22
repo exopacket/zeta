@@ -1,16 +1,17 @@
 package com.inteliense.zeta.client;
 
 import com.inteliense.zeta.types.ZeroTrustResponseType;
-import com.inteliense.zeta.utils.AES;
-import com.inteliense.zeta.utils.EncodingUtils;
-import com.inteliense.zeta.utils.Random;
-import com.inteliense.zeta.utils.SHA;
+import com.inteliense.zeta.utils.*;
 import org.json.simple.JSONObject;
+
+import java.security.PrivateKey;
 
 public class ZETAResponse {
 
     private int status;
     private ResponseHeaders headers;
+    private PrivateKey rsaKey;
+    private String ciphertext;
     private JSONObject data;
     private ZeroTrustResponseType responseType;
     private String nextAuthorization;
@@ -24,6 +25,15 @@ public class ZETAResponse {
         this.headers = headers;
         this.data = data;
         this.responseType = responseType;
+        this.verified = verify(apiKey, secret, random);
+    }
+
+    public ZETAResponse(int status, ResponseHeaders headers, String ciphertext, PrivateKey rsaKey, String apiKey, String secret, String random, ZeroTrustResponseType responseType) {
+        this.status = status;
+        this.headers = headers;
+        this.ciphertext = ciphertext;
+        this.responseType = responseType;
+        this.rsaKey = rsaKey;
         this.verified = verify(apiKey, secret, random);
     }
 
@@ -63,6 +73,16 @@ public class ZETAResponse {
 
     public String currentSecretKey() {
         return this.currentSecretKey;
+    }
+
+    public boolean decrypt() {
+        String json = RSA.decrypt(ciphertext, rsaKey);
+
+        if(JSON.verify(json).equals("false")) return false;
+
+        this.data = JSON.getObject(json);
+
+        return true;
     }
 
     private boolean verify(String apiKey, String secretKey, String random) {
