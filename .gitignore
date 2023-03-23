@@ -1,0 +1,6 @@
+.idea/
+*.iml
+!target/zeta-1.0.jar
+!target/zeta-1.0-jar-with-dependencies.jar
+target/
+out/
