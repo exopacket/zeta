@@ -1,6 +1,8 @@
 .idea/
 *.iml
-!target/zeta-1.0.jar
-!target/zeta-1.0-jar-with-dependencies.jar
-target/
+target/archive-tmp
+target/classes/
+target/generated-sources/
+target/maven-archiver/
+target/maven-status/
 out/
